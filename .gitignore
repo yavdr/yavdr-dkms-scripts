@@ -1,2 +1,4 @@
 repositories/*
 updates/*
+dkms.conf.v4l-dvb
+temp-build/*
