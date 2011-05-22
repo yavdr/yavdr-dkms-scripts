@@ -24,13 +24,13 @@ if [ -d updates/v4l-dvb -a -d updates/media_build ]; then
     cd ..
 else 
     cd updates/
-    git clone --depth 1 git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux-2.6.git v4l-dvb
+    git clone git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux-2.6.git v4l-dvb
     cd v4l-dvb
     git remote add linuxtv git://linuxtv.org/media_tree.git
     git remote update
     git checkout -b media-master remotes/linuxtv/staging/for_v2.6.40
     cd ..
-    git clone --depth 1 git://linuxtv.org/media_build.git
+    git clone git://linuxtv.org/media_build.git
 fi
 
 cd media_build/linux
@@ -38,7 +38,7 @@ make tar DIR=../../v4l-dvb &> /dev/null
 make untar &> /dev/null
 cd ..
 rm -rf ../../repositories/v4l-dvb/
-mkdir ../../repositories/v4l-dvb
+mkdir -p ../../repositories/v4l-dvb
 tar c * --exclude=".hg" --exclude ".git" | tar x -C ../../repositories/v4l-dvb
 cd ../v4l-dvb
 VERSION=git`git rev-list --all | wc -l`
@@ -183,4 +183,4 @@ cp $dkmstree/${REPO}/$VERSION/dsc/* ./packages/dsc/
 #cp $dkmstree/${REPO}/$VERSION/deb/* ./packages/deb/
 
 # upload to ppa
-dput ppa:yavdr/main ./packages/dsc/$REPO-dkms_$VERSION*.changes
+#dput ppa:yavdr/main ./packages/dsc/$REPO-dkms_$VERSION*.changes
