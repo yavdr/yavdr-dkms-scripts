@@ -1,4 +1,5 @@
 repositories/*
 updates/*
+packages/*
 dkms.conf.v4l-dvb
 temp-build/*

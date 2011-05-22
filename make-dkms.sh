@@ -100,7 +100,7 @@ case $1 in
            ;;
 esac
 
-VERSION=0~`/bin/date +%0Y%0m%0d`.$(cat repositories/$REPO.version)
+VERSION=0~`/bin/date +%0Y%0m%0d`.$(cat repositories/$REPO.version)-1yavdr0
 PATCHES=( `find patches/$REPO/* -name '*.patch' | tac` )
 
 if [ -e "config-$REPO" ]; then 
@@ -183,4 +183,4 @@ cp $dkmstree/${REPO}/$VERSION/dsc/* ./packages/dsc/
 #cp $dkmstree/${REPO}/$VERSION/deb/* ./packages/deb/
 
 # upload to ppa
-#dput ppa:yavdr/main ./packages/dsc/$REPO-dkms_$VERSION*.changes
+dput ppa:yavdr/main ./packages/dsc/$REPO-dkms_$VERSION*.changes
