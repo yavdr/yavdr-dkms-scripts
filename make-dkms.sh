@@ -24,13 +24,13 @@ if [ -d updates/v4l-dvb -a -d updates/media_build ]; then
     cd ..
 else 
     cd updates/
-    git clone git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux-2.6.git v4l-dvb
+    git clone --depth 1 git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux-2.6.git v4l-dvb
     cd v4l-dvb
     git remote add linuxtv git://linuxtv.org/media_tree.git
     git remote update
-    git checkout -b media-master remotes/linuxtv/staging/for_v2.6.39
+    git checkout -b media-master remotes/linuxtv/staging/for_v2.6.40
     cd ..
-    git clone git://linuxtv.org/media_build.git
+    git clone --depth 1 git://linuxtv.org/media_build.git
 fi
 
 cd media_build/linux
