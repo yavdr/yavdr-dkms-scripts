@@ -100,7 +100,8 @@ case $1 in
            ;;
 esac
 
-VERSION=0~`/bin/date +%0Y%0m%0d`.$(cat repositories/$REPO.version)-1yavdr0
+VERSION=0~`/bin/date +%0Y%0m%0d`.$(cat repositories/$REPO.version)
+#-1yavdr1
 PATCHES=( `find patches/$REPO/* -name '*.patch' | tac` )
 
 if [ -e "config-$REPO" ]; then 
@@ -179,8 +180,8 @@ dkms --sourcetree $srctree --dkmstree $dkmstree mkdsc -m ${REPO} -v $VERSION -k 
 cp $dkmstree/${REPO}/$VERSION/dsc/* ./packages/dsc/
 
 # mkdeb
-#dkms --sourcetree $srctree --dkmstree $dkmstree mkdeb -m ${REPO} -v $VERSION -k $KERNEL
-#cp $dkmstree/${REPO}/$VERSION/deb/* ./packages/deb/
+dkms --sourcetree $srctree --dkmstree $dkmstree mkdeb -m ${REPO} -v $VERSION -k $KERNEL
+cp $dkmstree/${REPO}/$VERSION/deb/* ./packages/deb/
 
 # upload to ppa
-dput ppa:yavdr/main ./packages/dsc/$REPO-dkms_$VERSION*.changes
+#dput ppa:yavdr/main ./packages/dsc/$REPO-dkms_$VERSION*.changes

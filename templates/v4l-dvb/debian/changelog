@@ -1,4 +1,4 @@
 DEBIAN_PACKAGE-dkms (MODULE_VERSION) natty; urgency=medium
   * Automatically packaged by DKMS.
 
- -- Holger Schvestka <hotzenplotz5@gmx.de>  DATE_STAMP
+ -- Marco Scholl <develop@marco-scholl.de>  DATE_STAMP

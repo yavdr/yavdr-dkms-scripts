@@ -1,0 +1,139 @@
+diff -ru media_build-unpatched/linux/drivers/media/common/saa716x/saa716x_budget.c media_build-patched/linux/drivers/media/common/saa716x/saa716x_budget.c
+--- media_build-unpatched/linux/drivers/media/common/saa716x/saa716x_budget.c	2011-04-19 20:42:29.000000000 +0200
++++ media_build-patched/linux/drivers/media/common/saa716x/saa716x_budget.c	2011-05-09 22:57:37.268375247 +0200
+@@ -43,6 +43,10 @@
+ module_param(int_type, int, 0644);
+ MODULE_PARM_DESC(int_type, "force Interrupt Handler type: 0=INT-A, 1=MSI, 2=MSI-X. default INT-A mode");
+ 
++unsigned int ir_keymap;
++module_param(ir_keymap, int, 0644);
++MODULE_PARM_DESC(ir_keymap, "ir keymap: 0=plain mapping, 1=cleanup mapping for tt6400 fb. default 0 mode");
++
+ #define DRIVER_NAME	"SAA716x Budget"
+ 
+ static int __devinit saa716x_budget_pci_probe(struct pci_dev *pdev, const struct pci_device_id *pci_id)
+@@ -59,6 +63,7 @@
+ 
+ 	saa716x->verbose	= verbose;
+ 	saa716x->int_type	= int_type;
++	saa716x->ir_keymap	= ir_keymap;
+ 	saa716x->pdev		= pdev;
+ 	saa716x->config		= (struct saa716x_config *) pci_id->driver_data;
+ 
+diff -ru media_build-unpatched/linux/drivers/media/common/saa716x/saa716x_ff_ir.c media_build-patched/linux/drivers/media/common/saa716x/saa716x_ff_ir.c
+--- media_build-unpatched/linux/drivers/media/common/saa716x/saa716x_ff_ir.c	2011-04-19 20:42:29.000000000 +0200
++++ media_build-patched/linux/drivers/media/common/saa716x/saa716x_ff_ir.c	2011-05-09 23:23:33.611430055 +0200
+@@ -222,8 +222,54 @@
+ 	/* TODO: fix setup/keymap */
+ 	ir->protocol = IR_RC5;
+ 	ir->device_mask = 0xffffffff;
+-	for (i = 0; i < ARRAY_SIZE(ir->key_map); i++)
+-		ir->key_map[i] = i+1;
++	if (saa716x->ir_keymap == 1) {
++		ir->key_map[0x01] = KEY_POWER;
++		ir->key_map[0x18] = KEY_MUTE;
++		ir->key_map[0x03] = KEY_1;
++		ir->key_map[0x04] = KEY_2;
++		ir->key_map[0x05] = KEY_3;
++		ir->key_map[0x06] = KEY_4;
++		ir->key_map[0x07] = KEY_5;
++		ir->key_map[0x08] = KEY_6;
++		ir->key_map[0x09] = KEY_7;
++		ir->key_map[0x0a] = KEY_8;
++		ir->key_map[0x0b] = KEY_9;
++		ir->key_map[0x0c] = KEY_0;
++		ir->key_map[0x31] = KEY_DELETE;
++		ir->key_map[0x1a] = KEY_TV;
++		ir->key_map[0x1b] = KEY_SETUP;
++		ir->key_map[0x27] = KEY_MENU;
++		ir->key_map[0x21] = KEY_OPTION;
++		ir->key_map[0x02] = KEY_MODE;
++		ir->key_map[0x23] = KEY_CHANNELUP;
++		ir->key_map[0x24] = KEY_CHANNELDOWN;
++		ir->key_map[0x25] = KEY_VOLUMEUP;
++		ir->key_map[0x26] = KEY_VOLUMEDOWN;
++		ir->key_map[0x12] = KEY_INFO;
++		ir->key_map[0x19] = KEY_TEXT;
++		ir->key_map[0x14] = KEY_RED;
++		ir->key_map[0x15] = KEY_GREEN;
++		ir->key_map[0x16] = KEY_YELLOW;
++		ir->key_map[0x17] = KEY_BLUE;
++		ir->key_map[0x0d] = KEY_UP;
++		ir->key_map[0x11] = KEY_DOWN;
++		ir->key_map[0x0f] = KEY_OK;
++		ir->key_map[0x0e] = KEY_LEFT;
++		ir->key_map[0x10] = KEY_RIGHT;
++		ir->key_map[0x22] = KEY_EPG;
++		ir->key_map[0x13] = KEY_BACK;
++		ir->key_map[0x53] = KEY_RECORD;
++		ir->key_map[0x54] = KEY_REWIND;
++		ir->key_map[0x55] = KEY_PLAY;
++		ir->key_map[0x56] = KEY_FASTFORWARD;
++		ir->key_map[0x46] = KEY_PVR;
++		ir->key_map[0x47] = KEY_PREVIOUS;
++		ir->key_map[0x35] = KEY_STOP;
++		ir->key_map[0x30] = KEY_NEXT;
++	} else {
++		for (i = 0; i < ARRAY_SIZE(ir->key_map); i++)
++			ir->key_map[i] = i+1;
++	}
+ 	ir_register_keys(ir);
+ 
+ 	/* override repeat timer */
+diff -ru media_build-unpatched/linux/drivers/media/common/saa716x/saa716x_ff_main.c media_build-patched/linux/drivers/media/common/saa716x/saa716x_ff_main.c
+--- media_build-unpatched/linux/drivers/media/common/saa716x/saa716x_ff_main.c	2011-04-20 07:16:20.000000000 +0200
++++ media_build-patched/linux/drivers/media/common/saa716x/saa716x_ff_main.c	2011-05-09 22:56:54.918375244 +0200
+@@ -56,6 +56,10 @@
+ module_param(int_type, int, 0644);
+ MODULE_PARM_DESC(int_type, "force Interrupt Handler type: 0=INT-A, 1=MSI, 2=MSI-X. default INT-A mode");
+ 
++unsigned int ir_keymap;
++module_param(ir_keymap, int, 0644);
++MODULE_PARM_DESC(ir_keymap, "ir keymap: 0=plain mapping, 1=cleanup mapping for tt6400 fb. default 0 mode");
++
+ #define DRIVER_NAME	"SAA716x FF"
+ 
+ static int saa716x_ff_fpga_init(struct saa716x_dev *saa716x)
+@@ -816,6 +820,7 @@
+ 
+ 	saa716x->verbose	= verbose;
+ 	saa716x->int_type	= int_type;
++	saa716x->ir_keymap	= ir_keymap;
+ 	saa716x->pdev		= pdev;
+ 	saa716x->config		= (struct saa716x_config *) pci_id->driver_data;
+ 
+diff -ru media_build-unpatched/linux/drivers/media/common/saa716x/saa716x_hybrid.c media_build-patched/linux/drivers/media/common/saa716x/saa716x_hybrid.c
+--- media_build-unpatched/linux/drivers/media/common/saa716x/saa716x_hybrid.c	2011-04-19 20:42:29.000000000 +0200
++++ media_build-patched/linux/drivers/media/common/saa716x/saa716x_hybrid.c	2011-05-09 22:58:31.058375251 +0200
+@@ -44,6 +44,10 @@
+ module_param(int_type, int, 0644);
+ MODULE_PARM_DESC(int_type, "force Interrupt Handler type: 0=INT-A, 1=MSI, 2=MSI-X. default INT-A mode");
+ 
++unsigned int ir_keymap;
++module_param(ir_keymap, int, 0644);
++MODULE_PARM_DESC(ir_keymap, "ir keymap: 0=plain mapping, 1=cleanup mapping for tt6400 fb. default 0 mode");
++
+ #define DRIVER_NAME	"SAA716x Hybrid"
+ 
+ static int __devinit saa716x_hybrid_pci_probe(struct pci_dev *pdev, const struct pci_device_id *pci_id)
+@@ -61,6 +65,7 @@
+ 
+ 	saa716x->verbose	= verbose;
+ 	saa716x->int_type	= int_type;
++	saa716x->ir_keymap	= ir_keymap;
+ 	saa716x->pdev		= pdev;
+ 	saa716x->config		= (struct saa716x_config *) pci_id->driver_data;
+ 
+diff -ru media_build-unpatched/linux/drivers/media/common/saa716x/saa716x_priv.h media_build-patched/linux/drivers/media/common/saa716x/saa716x_priv.h
+--- media_build-unpatched/linux/drivers/media/common/saa716x/saa716x_priv.h	2011-04-19 20:42:29.000000000 +0200
++++ media_build-patched/linux/drivers/media/common/saa716x/saa716x_priv.h	2011-05-09 22:51:42.708375221 +0200
+@@ -139,6 +139,7 @@
+ #define MODE_MSI	1
+ #define MODE_MSI_X	2
+ 	u8				int_type;
++	u8				ir_keymap;
+ 
+ 	struct msix_entry		msix_entries[SAA716x_MSI_MAX_VECTORS];
+ 	struct saa716x_msix_entry	saa716x_msix_handler[56];
+Nur in media_build-patched/linux: .git_log.md5.
+Nur in media_build-patched/linux: .patches_applied.

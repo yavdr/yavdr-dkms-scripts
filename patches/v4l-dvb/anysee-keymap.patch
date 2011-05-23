@@ -1,0 +1,22 @@
+--- rc-anysee.c.orig	2011-05-24 00:32:37.461663399 +0200
++++ rc-anysee.c	2011-05-24 00:40:27.541663647 +0200
+@@ -37,7 +37,7 @@
+ 	{ 0x080d, KEY_NEXT },            /* [>>|] */
+ 	{ 0x080e, KEY_MENU },            /* MENU */
+ 	{ 0x080f, KEY_EPG },             /* [EPG] */
+-	{ 0x0810, KEY_CLEAR },           /* EXIT */
++	{ 0x0810, KEY_EXIT },            /* EXIT */
+ 	{ 0x0811, KEY_CHANNELUP },
+ 	{ 0x0812, KEY_VOLUMEDOWN },
+ 	{ 0x0813, KEY_VOLUMEUP },
+@@ -56,8 +56,8 @@
+ 	{ 0x0820, KEY_SLEEP },           /* Sleep */
+ 	{ 0x0821, KEY_SCREEN },          /* 16:9 / 4:3 */
+ 	{ 0x0822, KEY_ZOOM },            /* SIZE */
+-	{ 0x0824, KEY_FN },              /* [F1] */
+-	{ 0x0825, KEY_FN },              /* [F2] */
++	{ 0x0824, KEY_FN_F1 },           /* [F1] */
++	{ 0x0825, KEY_FN_F2 },           /* [F2] */
+ 	{ 0x0842, KEY_MUTE },            /* symbol mute */
+ 	{ 0x0844, KEY_BLUE },
+ 	{ 0x0847, KEY_TEXT },            /* TEXT */
