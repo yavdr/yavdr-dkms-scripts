@@ -1,5 +1,5 @@
---- rc-anysee.c.orig	2011-05-24 00:32:37.461663399 +0200
-+++ rc-anysee.c	2011-05-24 00:40:27.541663647 +0200
+--- a/linux/drivers/media/rc/keymaps/rc-anysee.c.orig	2011-05-24 00:32:37.461663399 +0200
++++ b/linux/drivers/media/rc/keymaps/rc-anysee.c	2011-05-24 00:40:27.541663647 +0200
 @@ -37,7 +37,7 @@
  	{ 0x080d, KEY_NEXT },            /* [>>|] */
  	{ 0x080e, KEY_MENU },            /* MENU */

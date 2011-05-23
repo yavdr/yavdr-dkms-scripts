@@ -37,7 +37,7 @@ cd media_build/linux
 make tar DIR=../../v4l-dvb &> /dev/null
 make untar &> /dev/null
 cd ..
-rm -rf ../../repositories/v4l-dvb/
+rm -rf ../../repositories/v4l-dvb
 mkdir -p ../../repositories/v4l-dvb
 tar c * --exclude=".hg" --exclude ".git" | tar x -C ../../repositories/v4l-dvb
 cd ../v4l-dvb
@@ -50,14 +50,15 @@ echo "v4l-dvb: Update ended. Now: $VERSION"
 }
 
 update-s2-liplianin () {
+cd updates
 echo "s2-liplianin: Update started"
-if [ -d updates/s2-liplianin ]; then 
-     cd updates/s2-liplianin
-     hg pull
-     hg update
-     cd ..
+if [ -d s2-liplianin ]; then 
+    cd s2-liplianin
+    hg pull
+    hg update
+    cd ..
 else 
-     hg clone http://mercurial.intuxication.org/hg/s2-liplianin
+    hg clone http://mercurial.intuxication.org/hg/s2-liplianin
 fi 
 rm -rf ../repositories/s2-liplianin
 tar c s2-liplianin --exclude=".hg" --exclude ".git" | tar x -C ../repositories/
