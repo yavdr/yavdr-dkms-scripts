@@ -1,0 +1,150 @@
+diff -r 4475123e9fc6 linux/drivers/media/common/saa716x/saa716x_ff.h
+--- a/linux/drivers/media/common/saa716x/saa716x_ff.h	Thu May 05 19:26:18 2011 +0200
++++ b/linux/drivers/media/common/saa716x/saa716x_ff.h	Mon May 23 23:16:31 2011 +0200
+@@ -47,6 +47,8 @@
+ 
+ #define FPGA_ADDR_VERSION	0x80F0 /* FPGA bitstream version register */
+ 
++#define FPGA_ADDR_PIO_CTRL	0x8500 /* FPGA GPIO control register */
++
+ #define ISR_CMD_MASK		0x0001 /* interrupt source for normal cmds (osd, fre, av, ...) */
+ #define ISR_READY_MASK		0x0002 /* interrupt source for command acknowledge */
+ #define ISR_BLOCK_MASK		0x0004 /* interrupt source for single block transfers and acknowledge */
+@@ -99,6 +101,8 @@
+ 	struct dvb_ringbuffer	tsout;   /* buffer for TS output */
+ 	u8			*tsbuf;  /* temp ts buffer */
+ 
++	struct tasklet_struct	fifo_tasklet;
++
+ 	wait_queue_head_t	boot_finish_wq;
+ 	int			boot_finished;
+ 
+diff -r 4475123e9fc6 linux/drivers/media/common/saa716x/saa716x_ff_main.c
+--- a/linux/drivers/media/common/saa716x/saa716x_ff_main.c	Thu May 05 19:26:18 2011 +0200
++++ b/linux/drivers/media/common/saa716x/saa716x_ff_main.c	Mon May 23 23:16:31 2011 +0200
+@@ -657,6 +657,41 @@
+ 	return 0;
+ }
+ 
++static void fifo_worker(unsigned long data)
++{
++	struct saa716x_dev *saa716x = (struct saa716x_dev *) data;
++	struct sti7109_dev *sti7109 = saa716x->priv;
++	u32 fifoCtrl;
++	u32 fifoStat;
++	u16 fifoSize;
++	u16 fifoUsage;
++	u16 fifoFree;
++	int len;
++
++	fifoCtrl = SAA716x_EPRD(PHI_1, FPGA_ADDR_FIFO_CTRL);
++	fifoStat = SAA716x_EPRD(PHI_1, FPGA_ADDR_FIFO_STAT);
++	fifoSize = (u16) (fifoStat >> 16);
++	fifoUsage = (u16) fifoStat;
++	fifoFree = fifoSize - fifoUsage;
++	spin_lock(&sti7109->tsout.lock);
++	len = dvb_ringbuffer_avail(&sti7109->tsout);
++	if (len > fifoFree)
++		len = fifoFree;
++	if (len >= TS_SIZE)
++	{
++		while (len >= TS_SIZE)
++		{
++			dvb_ringbuffer_read(&sti7109->tsout, sti7109->tsbuf, (size_t) TS_SIZE);
++			saa716x_phi_write_fifo(saa716x, sti7109->tsbuf, TS_SIZE);
++			len -= TS_SIZE;
++		}
++		wake_up(&sti7109->tsout.queue);
++		fifoCtrl |= 0x4;
++		SAA716x_EPWR(PHI_1, FPGA_ADDR_FIFO_CTRL, fifoCtrl);
++	}
++	spin_unlock(&sti7109->tsout.lock);
++}
++
+ #define FREE_COND_TS (dvb_ringbuffer_free(&sti7109->tsout) >= TS_SIZE)
+ 
+ static ssize_t dvb_video_write(struct file *file, const char __user *buf,
+@@ -801,6 +836,7 @@
+ {
+ 	struct sti7109_dev *sti7109 = saa716x->priv;
+ 
++	tasklet_kill(&sti7109->fifo_tasklet);
+ 	dvb_unregister_device(sti7109->video_dev);
+ 	return 0;
+ }
+@@ -819,6 +855,9 @@
+ 			    sti7109,
+ 			    DVB_DEVICE_VIDEO);
+ 
++	tasklet_init(&sti7109->fifo_tasklet, fifo_worker,
++		     (unsigned long)saa716x);
++
+ 	return 0;
+ }
+ 
+@@ -958,6 +997,12 @@
+ 	SAA716x_EPWR(MSI, MSI_CONFIG33, value);
+ 	SAA716x_EPWR(MSI, MSI_INT_ENA_SET_H, MSI_INT_EXTINT_0);
+ 
++	/* enable tuner reset */
++	SAA716x_EPWR(PHI_1, FPGA_ADDR_PIO_CTRL, 0);
++	msleep(50);
++	/* disable tuner reset */
++	SAA716x_EPWR(PHI_1, FPGA_ADDR_PIO_CTRL, 1);
++
+ 	err = saa716x_ff_st7109_init(saa716x);
+ 	if (err) {
+ 		dprintk(SAA716x_ERROR, 1, "SAA716x FF STi7109 initialization failed");
+@@ -1411,37 +1456,12 @@
+ 
+ 		if (phiISR & ISR_FIFO1_EMPTY_MASK) {
+ 			u32 fifoCtrl;
+-			u32 fifoStat;
+-			u16 fifoSize;
+-			u16 fifoUsage;
+-			u16 fifoFree;
+-			int len;
+ 
+ 			/*dprintk(SAA716x_INFO, 1, "FIFO EMPTY interrupt source");*/
+ 			fifoCtrl = SAA716x_EPRD(PHI_1, FPGA_ADDR_FIFO_CTRL);
+ 			fifoCtrl &= ~0x4;
+ 			SAA716x_EPWR(PHI_1, FPGA_ADDR_FIFO_CTRL, fifoCtrl);
+-			fifoStat = SAA716x_EPRD(PHI_1, FPGA_ADDR_FIFO_STAT);
+-			fifoSize = (u16) (fifoStat >> 16);
+-			fifoUsage = (u16) fifoStat;
+-			fifoFree = fifoSize - fifoUsage;
+-			spin_lock(&sti7109->tsout.lock);
+-			len = dvb_ringbuffer_avail(&sti7109->tsout);
+-			if (len > fifoFree)
+-				len = fifoFree;
+-			if (len >= TS_SIZE)
+-			{
+-				while (len >= TS_SIZE)
+-				{
+-					dvb_ringbuffer_read(&sti7109->tsout, sti7109->tsbuf, (size_t) TS_SIZE);
+-					saa716x_phi_write_fifo(saa716x, sti7109->tsbuf, TS_SIZE);
+-					len -= TS_SIZE;
+-				}
+-				wake_up(&sti7109->tsout.queue);
+-				fifoCtrl |= 0x4;
+-				SAA716x_EPWR(PHI_1, FPGA_ADDR_FIFO_CTRL, fifoCtrl);
+-			}
+-			spin_unlock(&sti7109->tsout.lock);
++			tasklet_schedule(&sti7109->fifo_tasklet);
+ 			phiISR &= ~ISR_FIFO1_EMPTY_MASK;
+ 		}
+ 
+diff -r 4475123e9fc6 linux/drivers/media/common/saa716x/saa716x_pci.c
+--- a/linux/drivers/media/common/saa716x/saa716x_pci.c	Thu May 05 19:26:18 2011 +0200
++++ b/linux/drivers/media/common/saa716x/saa716x_pci.c	Mon May 23 23:16:31 2011 +0200
+@@ -74,8 +74,8 @@
+ 
+ 	if (saa716x->int_type == MODE_MSI) {
+ 		ret = request_irq(pdev->irq,
+-				  saa716x_msi_handler,
+-				  IRQF_SHARED,
++				  config->irq_handler,
++				  0,
+ 				  DRIVER_NAME,
+ 				  saa716x);
+ 
