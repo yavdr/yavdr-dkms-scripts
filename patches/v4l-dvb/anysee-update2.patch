@@ -1,0 +1,19 @@
+diff -ur media_tree/linux/drivers/media/dvb/dvb-usb/anysee.c media_tree_2/linux/drivers/media/dvb/dvb-usb/anysee.c
+--- media_tree/linux/drivers/media/dvb/dvb-usb/anysee.c	2011-05-26 22:57:31.157158198 +0200
++++ media_tree_2/linux/drivers/media/dvb/dvb-usb/anysee.c	2011-05-26 23:33:50.287158577 +0200
+@@ -543,6 +543,7 @@
+ 
+ 		break;
+ 	case ANYSEE_HW_507FA: /* 15 */
++	case 20: /* Test 20 */
+ 		/* E30 Combo Plus */
+ 		/* E30 C Plus */
+ 
+@@ -749,6 +750,7 @@
+ 
+ 		break;
+ 	case ANYSEE_HW_507FA: /* 15 */
++	case 20: /* Test 20 */
+ 		/* E30 Combo Plus */
+ 		/* E30 C Plus */
+
