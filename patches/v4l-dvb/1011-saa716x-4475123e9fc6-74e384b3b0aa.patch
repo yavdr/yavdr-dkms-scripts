@@ -1,6 +1,19 @@
-diff -r 4475123e9fc6 linux/drivers/media/common/saa716x/saa716x_ff.h
---- a/linux/drivers/media/common/saa716x/saa716x_ff.h	Thu May 05 19:26:18 2011 +0200
-+++ b/linux/drivers/media/common/saa716x/saa716x_ff.h	Mon May 23 23:16:31 2011 +0200
+diff -r e2aac10225da linux/drivers/media/common/saa716x/saa716x_adap.c
+--- a/linux/drivers/media/common/saa716x/saa716x_adap.c	Thu May 05 19:18:34 2011 +0200
++++ b/linux/drivers/media/common/saa716x/saa716x_adap.c	Sat May 28 00:15:51 2011 +0200
+@@ -189,7 +189,8 @@
+ 			dprintk(SAA716x_ERROR, 1, "Frontend attach = NULL");
+ 		}
+ 
+-		saa716x_fgpi_init(saa716x, config->adap_config[i].ts_port);
++		saa716x_fgpi_init(saa716x, config->adap_config[i].ts_port,
++				  config->adap_config[i].worker);
+ 
+ 		saa716x_adap++;
+ 	}
+diff -r e2aac10225da linux/drivers/media/common/saa716x/saa716x_ff.h
+--- a/linux/drivers/media/common/saa716x/saa716x_ff.h	Thu May 05 19:18:34 2011 +0200
++++ b/linux/drivers/media/common/saa716x/saa716x_ff.h	Sat May 28 00:15:51 2011 +0200
 @@ -47,6 +47,8 @@
  
  #define FPGA_ADDR_VERSION	0x80F0 /* FPGA bitstream version register */
@@ -19,9 +32,9 @@ diff -r 4475123e9fc6 linux/drivers/media/common/saa716x/saa716x_ff.h
  	wait_queue_head_t	boot_finish_wq;
  	int			boot_finished;
  
-diff -r 4475123e9fc6 linux/drivers/media/common/saa716x/saa716x_ff_main.c
---- a/linux/drivers/media/common/saa716x/saa716x_ff_main.c	Thu May 05 19:26:18 2011 +0200
-+++ b/linux/drivers/media/common/saa716x/saa716x_ff_main.c	Mon May 23 23:16:31 2011 +0200
+diff -r e2aac10225da linux/drivers/media/common/saa716x/saa716x_ff_main.c
+--- a/linux/drivers/media/common/saa716x/saa716x_ff_main.c	Thu May 05 19:18:34 2011 +0200
++++ b/linux/drivers/media/common/saa716x/saa716x_ff_main.c	Sat May 28 00:15:51 2011 +0200
 @@ -657,6 +657,41 @@
  	return 0;
  }
@@ -95,7 +108,158 @@ diff -r 4475123e9fc6 linux/drivers/media/common/saa716x/saa716x_ff_main.c
  	err = saa716x_ff_st7109_init(saa716x);
  	if (err) {
  		dprintk(SAA716x_ERROR, 1, "SAA716x FF STi7109 initialization failed");
-@@ -1411,37 +1456,12 @@
+@@ -1087,6 +1132,70 @@
+ 	kfree(saa716x);
+ }
+ 
++static void demux_worker(unsigned long data)
++{
++	struct saa716x_fgpi_stream_port *fgpi_entry = (struct saa716x_fgpi_stream_port *)data;
++	struct saa716x_dev *saa716x = fgpi_entry->saa716x;
++	struct dvb_demux *demux;
++	u32 fgpi;
++	u32 write_index;
++	u32 fgpiStatus;
++
++	switch (fgpi_entry->dma_channel - 6) {
++	case 2:	/* FGPI_2 */
++		demux = &saa716x->saa716x_adap[0].demux;
++		fgpi = FGPI2;
++		write_index = (SAA716x_EPRD(BAM, BAM_FGPI2_DMA_BUF_MODE) >> 3) & 0x7;
++		break;
++
++	case 3: /* FGPI_3 */
++		demux = &saa716x->saa716x_adap[1].demux;
++		fgpi = FGPI3;
++		write_index = (SAA716x_EPRD(BAM, BAM_FGPI3_DMA_BUF_MODE) >> 3) & 0x7;
++		break;
++
++	default:
++		printk(KERN_ERR "%s: unexpected channel %u\n",
++		       __func__, fgpi_entry->dma_channel);
++		return;
++	}
++
++	fgpiStatus = SAA716x_EPRD(fgpi, INT_STATUS);
++	dprintk(SAA716x_DEBUG, 1, "fgpiStatus = %04X, buffer = %d",
++		fgpiStatus, write_index);
++
++	if (write_index == fgpi_entry->read_index) {
++		printk(KERN_ERR "%s: called but nothing to do\n", __func__);
++		return;
++	}
++
++	do {
++		u8 *data = (u8 *)fgpi_entry->dma_buf[fgpi_entry->read_index].mem_virt;
++
++		pci_dma_sync_sg_for_cpu(saa716x->pdev,
++			fgpi_entry->dma_buf[fgpi_entry->read_index].sg_list,
++			fgpi_entry->dma_buf[fgpi_entry->read_index].list_len,
++			PCI_DMA_FROMDEVICE);
++
++		if (data[0] != 0x47) {
++			u32 val = SAA716x_EPRD(fgpi, FGPI_CONTROL);
++			val &= ~0x3000;
++			SAA716x_EPWR(fgpi, FGPI_CONTROL, val);
++			val |= 0x3000;
++			SAA716x_EPWR(fgpi, FGPI_CONTROL, val);
++
++			printk(KERN_WARNING "%s %u TS: %02X %02X %02X %02X %02X %02X %02X %02X",
++				__func__, fgpi_entry->dma_channel - 6,
++				data[0], data[1], data[2], data[3],
++				data[4], data[5], data[6], data[7]);
++		}
++
++		dvb_dmx_swfilter_packets(demux, data, 348);
++
++		fgpi_entry->read_index = (fgpi_entry->read_index + 1) & 7;
++	} while (write_index != fgpi_entry->read_index);
++}
++
+ static irqreturn_t saa716x_ff_pci_irq(int irq, void *dev_id)
+ {
+ 	struct saa716x_dev *saa716x	= (struct saa716x_dev *) dev_id;
+--- a/linux/drivers/media/common/saa716x/saa716x_ff_main.c	Thu May 05 19:18:34 2011 +0200
++++ b/linux/drivers/media/common/saa716x/saa716x_ff_main.c	Sat May 28 00:15:51 2011 +0200
+@@ -1345,73 +1345,10 @@
+ 	SAA716x_EPWR(MSI, MSI_INT_STATUS_CLR_H, msiStatusH);
+ 
+ 	if (msiStatusL) {
+-		struct sti7109_dev *sti7109 = saa716x->priv;
+-		if (msiStatusL & MSI_INT_TAGACK_FGPI_2) {
+-			u32 fgpiStatus;
+-			u32 activeBuffer;
+-
+-			fgpiStatus = SAA716x_EPRD(FGPI2, INT_STATUS);
+-			activeBuffer = (SAA716x_EPRD(BAM, BAM_FGPI2_DMA_BUF_MODE) >> 3) & 0x7;
+-			dprintk(SAA716x_DEBUG, 1, "fgpiStatus = %04X, buffer = %d",
+-				fgpiStatus, activeBuffer);
+-			if (activeBuffer > 0)
+-				activeBuffer -= 1;
+-			else
+-				activeBuffer = 7;
+-			if (saa716x->fgpi[2].dma_buf[activeBuffer].mem_virt) {
+-				u8 * data = (u8 *)saa716x->fgpi[2].dma_buf[activeBuffer].mem_virt;
+-				dprintk(SAA716x_DEBUG, 1, "%02X%02X%02X%02X",
+-					data[0], data[1], data[2], data[3]);
+-				if (data[0] != 0x47) {
+-					u32 val = SAA716x_EPRD(FGPI2, FGPI_CONTROL);
+-					val &= ~0x3000;
+-					SAA716x_EPWR(FGPI2, FGPI_CONTROL, val);
+-					val |= 0x3000;
+-					SAA716x_EPWR(FGPI2, FGPI_CONTROL, val);
+-
+-					dprintk(SAA716x_ERROR, 1,
+-						"TS 0: %02X%02X%02X%02X%02X%02X%02X%02X",
+-						data[0], data[1], data[2], data[3],
+-						data[4], data[5], data[6], data[7]);
+-				}
+-				dvb_dmx_swfilter_packets(&saa716x->saa716x_adap[0].demux, data, 348);
+-				sti7109->ts_count[0] += 348;
+-			}
+-			msiStatusL &= ~MSI_INT_TAGACK_FGPI_2;
+-		}
+-		if (msiStatusL & MSI_INT_TAGACK_FGPI_3) {
+-			u32 fgpiStatus;
+-			u32 activeBuffer;
+-
+-			fgpiStatus = SAA716x_EPRD(FGPI3, INT_STATUS);
+-			activeBuffer = (SAA716x_EPRD(BAM, BAM_FGPI3_DMA_BUF_MODE) >> 3) & 0x7;
+-			dprintk(SAA716x_DEBUG, 1, "fgpiStatus = %04X, buffer = %d",
+-				fgpiStatus, activeBuffer);
+-			if (activeBuffer > 0)
+-				activeBuffer -= 1;
+-			else
+-				activeBuffer = 7;
+-			if (saa716x->fgpi[3].dma_buf[activeBuffer].mem_virt) {
+-				u8 * data = (u8 *)saa716x->fgpi[3].dma_buf[activeBuffer].mem_virt;
+-				dprintk(SAA716x_DEBUG, 1, "%02X%02X%02X%02X",
+-					data[0], data[1], data[2], data[3]);
+-				if (data[0] != 0x47) {
+-					u32 val = SAA716x_EPRD(FGPI3, FGPI_CONTROL);
+-					val &= ~0x3000;
+-					SAA716x_EPWR(FGPI3, FGPI_CONTROL, val);
+-					val |= 0x3000;
+-					SAA716x_EPWR(FGPI3, FGPI_CONTROL, val);
+-
+-					dprintk(SAA716x_ERROR, 1,
+-						"TS 1: %02X%02X%02X%02X%02X%02X%02X%02X",
+-						data[0], data[1], data[2], data[3],
+-						data[4], data[5], data[6], data[7]);
+-				}
+-				dvb_dmx_swfilter_packets(&saa716x->saa716x_adap[1].demux, data, 348);
+-				sti7109->ts_count[1] += 348;
+-			}
+-			msiStatusL &= ~MSI_INT_TAGACK_FGPI_3;
+-		}
++		if (msiStatusL & MSI_INT_TAGACK_FGPI_2)
++			tasklet_schedule(&saa716x->fgpi[2].tasklet);
++		if (msiStatusL & MSI_INT_TAGACK_FGPI_3)
++			tasklet_schedule(&saa716x->fgpi[3].tasklet);
+ 	}
+ 	if (msiStatusH) {
+ 		//dprintk(SAA716x_INFO, 1, "msiStatusH: %08X", msiStatusH);
+@@ -1405,37 +1456,12 @@
  
  		if (phiISR & ISR_FIFO1_EMPTY_MASK) {
  			u32 fifoCtrl;
@@ -134,9 +298,88 @@ diff -r 4475123e9fc6 linux/drivers/media/common/saa716x/saa716x_ff_main.c
  			phiISR &= ~ISR_FIFO1_EMPTY_MASK;
  		}
  
-diff -r 4475123e9fc6 linux/drivers/media/common/saa716x/saa716x_pci.c
---- a/linux/drivers/media/common/saa716x/saa716x_pci.c	Thu May 05 19:26:18 2011 +0200
-+++ b/linux/drivers/media/common/saa716x/saa716x_pci.c	Mon May 23 23:16:31 2011 +0200
+@@ -1574,10 +1600,12 @@
+ 	.adap_config		= {
+ 		{
+ 			/* Adapter 0 */
+-			.ts_port = 2
++			.ts_port = 2,
++			.worker = demux_worker
+ 		},{
+ 			/* Adapter 1 */
+-			.ts_port = 3
++			.ts_port = 3,
++			.worker = demux_worker
+ 		}
+ 	}
+ };
+diff -r e2aac10225da linux/drivers/media/common/saa716x/saa716x_fgpi.c
+--- a/linux/drivers/media/common/saa716x/saa716x_fgpi.c	Thu May 05 19:18:34 2011 +0200
++++ b/linux/drivers/media/common/saa716x/saa716x_fgpi.c	Sat May 28 00:15:51 2011 +0200
+@@ -309,7 +309,8 @@
+ 	return 0;
+ }
+ 
+-int saa716x_fgpi_init(struct saa716x_dev *saa716x, int port)
++int saa716x_fgpi_init(struct saa716x_dev *saa716x, int port,
++		      void (*worker)(unsigned long))
+ {
+ 	int i;
+ 	int ret;
+@@ -323,6 +324,10 @@
+ 			return ret;
+ 		}
+ 	}
++	saa716x->fgpi[port].saa716x = saa716x;
++	tasklet_init(&saa716x->fgpi[port].tasklet, worker,
++		     (unsigned long)&saa716x->fgpi[port]);
++	saa716x->fgpi[port].read_index = 0;
+ 
+ 	return 0;
+ }
+@@ -331,6 +336,7 @@
+ {
+ 	int i;
+ 
++	tasklet_kill(&saa716x->fgpi[port].tasklet);
+ 	for (i = 0; i < FGPI_BUFFERS; i++)
+ 	{
+ 		saa716x_dmabuf_free(saa716x, &saa716x->fgpi[port].dma_buf[i]);
+diff -r e2aac10225da linux/drivers/media/common/saa716x/saa716x_fgpi.h
+--- a/linux/drivers/media/common/saa716x/saa716x_fgpi.h	Thu May 05 19:18:34 2011 +0200
++++ b/linux/drivers/media/common/saa716x/saa716x_fgpi.h	Sat May 28 00:15:51 2011 +0200
+@@ -1,6 +1,8 @@
+ #ifndef __SAA716x_FGPI_H
+ #define __SAA716x_FGPI_H
+ 
++#include <linux/interrupt.h>
++
+ #define FGPI_BUFFERS		8
+ #define PTA_LSB(__mem)		((u32 ) (__mem))
+ #define PTA_MSB(__mem)		((u32 ) ((u64)(__mem) >> 32))
+@@ -91,6 +93,9 @@
+ struct saa716x_fgpi_stream_port {
+ 	u8			dma_channel;
+ 	struct saa716x_dmabuf	dma_buf[FGPI_BUFFERS];
++	struct saa716x_dev	*saa716x;
++	struct tasklet_struct	tasklet;
++	u8			read_index;
+ };
+ 
+ extern void saa716x_fgpiint_disable(struct saa716x_dmabuf *dmabuf, int channel);
+@@ -98,7 +103,8 @@
+ 			      struct fgpi_stream_params *stream_params);
+ extern int saa716x_fgpi_stop(struct saa716x_dev *saa716x, int port);
+ 
+-extern int saa716x_fgpi_init(struct saa716x_dev *saa716x, int port);
++extern int saa716x_fgpi_init(struct saa716x_dev *saa716x, int port,
++			     void (*worker)(unsigned long));
+ extern int saa716x_fgpi_exit(struct saa716x_dev *saa716x, int port);
+ 
+ #endif /* __SAA716x_FGPI_H */
+diff -r e2aac10225da linux/drivers/media/common/saa716x/saa716x_pci.c
+--- a/linux/drivers/media/common/saa716x/saa716x_pci.c	Thu May 05 19:18:34 2011 +0200
++++ b/linux/drivers/media/common/saa716x/saa716x_pci.c	Sat May 28 00:15:51 2011 +0200
 @@ -74,8 +74,8 @@
  
  	if (saa716x->int_type == MODE_MSI) {
@@ -148,3 +391,14 @@ diff -r 4475123e9fc6 linux/drivers/media/common/saa716x/saa716x_pci.c
  				  DRIVER_NAME,
  				  saa716x);
  
+diff -r e2aac10225da linux/drivers/media/common/saa716x/saa716x_priv.h
+--- a/linux/drivers/media/common/saa716x/saa716x_priv.h	Thu May 05 19:18:34 2011 +0200
++++ b/linux/drivers/media/common/saa716x/saa716x_priv.h	Sat May 28 00:15:51 2011 +0200
+@@ -85,6 +85,7 @@
+ 
+ struct saa716x_adap_config {
+ 	u32				ts_port;
++	void				(*worker)(unsigned long);
+ };
+ 
+ struct saa716x_config {
