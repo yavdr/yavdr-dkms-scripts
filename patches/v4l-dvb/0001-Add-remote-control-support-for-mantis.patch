@@ -188,7 +188,7 @@ index db6d54d..615429d 100644
  #include <linux/pci.h>
  
  #include "dmxdev.h"
-@@ -28,132 +27,87 @@
+@@ -28,132 +27,88 @@
  #include "dvb_net.h"
  
  #include "mantis_common.h"
@@ -330,6 +330,7 @@ index db6d54d..615429d 100644
 +	rc_dev->driver_type = RC_DRIVER_SCANCODE;
 +	rc_dev->map_name = mantis->hwconfig->ir_codes;
 +	rc_dev->allowed_protos = RC_TYPE_UNKNOWN;
++	rc_dev->dev.parent = &mantis->pdev->dev;
 +
 +	err = rc_register_device(rc_dev);
  	if (err) {
