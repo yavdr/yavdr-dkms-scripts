@@ -1,6 +1,6 @@
 diff -r e2aac10225da linux/drivers/media/common/saa716x/saa716x_adap.c
 --- a/linux/drivers/media/common/saa716x/saa716x_adap.c	Thu May 05 19:18:34 2011 +0200
-+++ b/linux/drivers/media/common/saa716x/saa716x_adap.c	Sat May 28 00:15:51 2011 +0200
++++ b/linux/drivers/media/common/saa716x/saa716x_adap.c	Sun May 29 23:45:58 2011 +0200
 @@ -189,7 +189,8 @@
  			dprintk(SAA716x_ERROR, 1, "Frontend attach = NULL");
  		}
@@ -13,7 +13,7 @@ diff -r e2aac10225da linux/drivers/media/common/saa716x/saa716x_adap.c
  	}
 diff -r e2aac10225da linux/drivers/media/common/saa716x/saa716x_ff.h
 --- a/linux/drivers/media/common/saa716x/saa716x_ff.h	Thu May 05 19:18:34 2011 +0200
-+++ b/linux/drivers/media/common/saa716x/saa716x_ff.h	Sat May 28 00:15:51 2011 +0200
++++ b/linux/drivers/media/common/saa716x/saa716x_ff.h	Sun May 29 23:45:58 2011 +0200
 @@ -47,6 +47,8 @@
  
  #define FPGA_ADDR_VERSION	0x80F0 /* FPGA bitstream version register */
@@ -34,7 +34,7 @@ diff -r e2aac10225da linux/drivers/media/common/saa716x/saa716x_ff.h
  
 diff -r e2aac10225da linux/drivers/media/common/saa716x/saa716x_ff_main.c
 --- a/linux/drivers/media/common/saa716x/saa716x_ff_main.c	Thu May 05 19:18:34 2011 +0200
-+++ b/linux/drivers/media/common/saa716x/saa716x_ff_main.c	Sat May 28 00:15:51 2011 +0200
++++ b/linux/drivers/media/common/saa716x/saa716x_ff_main.c	Sun May 29 23:45:58 2011 +0200
 @@ -657,6 +657,41 @@
  	return 0;
  }
@@ -179,8 +179,6 @@ diff -r e2aac10225da linux/drivers/media/common/saa716x/saa716x_ff_main.c
  static irqreturn_t saa716x_ff_pci_irq(int irq, void *dev_id)
  {
  	struct saa716x_dev *saa716x	= (struct saa716x_dev *) dev_id;
---- a/linux/drivers/media/common/saa716x/saa716x_ff_main.c	Thu May 05 19:18:34 2011 +0200
-+++ b/linux/drivers/media/common/saa716x/saa716x_ff_main.c	Sat May 28 00:15:51 2011 +0200
 @@ -1345,73 +1345,10 @@
  	SAA716x_EPWR(MSI, MSI_INT_STATUS_CLR_H, msiStatusH);
  
@@ -315,7 +313,7 @@ diff -r e2aac10225da linux/drivers/media/common/saa716x/saa716x_ff_main.c
  };
 diff -r e2aac10225da linux/drivers/media/common/saa716x/saa716x_fgpi.c
 --- a/linux/drivers/media/common/saa716x/saa716x_fgpi.c	Thu May 05 19:18:34 2011 +0200
-+++ b/linux/drivers/media/common/saa716x/saa716x_fgpi.c	Sat May 28 00:15:51 2011 +0200
++++ b/linux/drivers/media/common/saa716x/saa716x_fgpi.c	Sun May 29 23:45:58 2011 +0200
 @@ -309,7 +309,8 @@
  	return 0;
  }
@@ -347,7 +345,7 @@ diff -r e2aac10225da linux/drivers/media/common/saa716x/saa716x_fgpi.c
  		saa716x_dmabuf_free(saa716x, &saa716x->fgpi[port].dma_buf[i]);
 diff -r e2aac10225da linux/drivers/media/common/saa716x/saa716x_fgpi.h
 --- a/linux/drivers/media/common/saa716x/saa716x_fgpi.h	Thu May 05 19:18:34 2011 +0200
-+++ b/linux/drivers/media/common/saa716x/saa716x_fgpi.h	Sat May 28 00:15:51 2011 +0200
++++ b/linux/drivers/media/common/saa716x/saa716x_fgpi.h	Sun May 29 23:45:58 2011 +0200
 @@ -1,6 +1,8 @@
  #ifndef __SAA716x_FGPI_H
  #define __SAA716x_FGPI_H
@@ -379,7 +377,7 @@ diff -r e2aac10225da linux/drivers/media/common/saa716x/saa716x_fgpi.h
  #endif /* __SAA716x_FGPI_H */
 diff -r e2aac10225da linux/drivers/media/common/saa716x/saa716x_pci.c
 --- a/linux/drivers/media/common/saa716x/saa716x_pci.c	Thu May 05 19:18:34 2011 +0200
-+++ b/linux/drivers/media/common/saa716x/saa716x_pci.c	Sat May 28 00:15:51 2011 +0200
++++ b/linux/drivers/media/common/saa716x/saa716x_pci.c	Sun May 29 23:45:58 2011 +0200
 @@ -74,8 +74,8 @@
  
  	if (saa716x->int_type == MODE_MSI) {
@@ -393,7 +391,7 @@ diff -r e2aac10225da linux/drivers/media/common/saa716x/saa716x_pci.c
  
 diff -r e2aac10225da linux/drivers/media/common/saa716x/saa716x_priv.h
 --- a/linux/drivers/media/common/saa716x/saa716x_priv.h	Thu May 05 19:18:34 2011 +0200
-+++ b/linux/drivers/media/common/saa716x/saa716x_priv.h	Sat May 28 00:15:51 2011 +0200
++++ b/linux/drivers/media/common/saa716x/saa716x_priv.h	Sun May 29 23:45:58 2011 +0200
 @@ -85,6 +85,7 @@
  
  struct saa716x_adap_config {
