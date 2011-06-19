@@ -28,7 +28,7 @@ else
     cd v4l-dvb
     git remote add linuxtv git://linuxtv.org/media_tree.git
     git remote update
-    git checkout -b media-master remotes/linuxtv/staging/for_v2.6.40
+    git checkout -b media-master remotes/linuxtv/staging/for_v3.1
     cd ..
     git clone git://linuxtv.org/media_build.git
 fi
