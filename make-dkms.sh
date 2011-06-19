@@ -135,7 +135,7 @@ if [ ! -d temp-build ]; then
             patch -d temp-build -p1 < $PATCH
         fi
     done
-    make -j5 -C temp-build KERNELRELEASE=$KERNEL VER=$KERNEL
+    make -j5 -C temp-build KERNELRELEASE=$KERNEL VER=$KERNEL ARCH=i386
 fi
 
 cd temp-build
@@ -174,14 +174,14 @@ cp -r templates/$REPO $D/${REPO}-dkms-mkdsc
 cp -r templates/$REPO $D/${REPO}-dkms-mkdeb
 
 # register to dkms
-dkms --sourcetree $srctree --dkmstree $dkmstree add -m ${REPO} -v $VERSION -k $KERNEL
-dkms --sourcetree $srctree --dkmstree $dkmstree build -m ${REPO} -v $VERSION -k $KERNEL
+dkms --sourcetree $srctree --dkmstree $dkmstree add -m ${REPO} -v $VERSION -k $KERNEL -a i386
+dkms --sourcetree $srctree --dkmstree $dkmstree build -m ${REPO} -v $VERSION -k $KERNEL -a i386
 # build debian source package
-dkms --sourcetree $srctree --dkmstree $dkmstree mkdsc -m ${REPO} -v $VERSION -k $KERNEL
+dkms --sourcetree $srctree --dkmstree $dkmstree mkdsc -m ${REPO} -v $VERSION -k $KERNEL -a i386
 cp $dkmstree/${REPO}/$VERSION/dsc/* ./packages/dsc/
 
 # mkdeb
-dkms --sourcetree $srctree --dkmstree $dkmstree mkdeb -m ${REPO} -v $VERSION -k $KERNEL
+dkms --sourcetree $srctree --dkmstree $dkmstree mkdeb -m ${REPO} -v $VERSION -k $KERNEL -a i386
 cp $dkmstree/${REPO}/$VERSION/deb/* ./packages/deb/
 
 # upload to ppa
