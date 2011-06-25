@@ -45,7 +45,7 @@ VERSION=git`git rev-list --all | wc -l`
 cd ../media_build
 VERSION=$VERSION.`git rev-list --all | wc -l`
 cd ../..
-echo $VERSION > repositories/v4l-dvb.version
+echo $VERSION~$RELEASE > repositories/v4l-dvb.version
 echo "v4l-dvb: Update ended. Now: $VERSION"
 }
 
@@ -63,12 +63,13 @@ fi
 rm -rf ../repositories/s2-liplianin
 tar c s2-liplianin --exclude=".hg" --exclude ".git" | tar x -C ../repositories/
 VERSION=`hg identify -n s2-liplianin | cut -d'+' -f1`
-echo $VERSION > ../repositories/s2-liplianin.version
+echo $VERSION~$RELEASE > ../repositories/s2-liplianin.version
 cd ..
 echo "s2-liplianin: Update ended. Now: $VERSION"
 }
 
 KERNEL=2.6.38-8-generic
+RELEASE=natty
 if [ -z "$KERNEL" ]; then
     if [ ! -z "$2" ]; then
     	KERNEL="$2"
@@ -185,4 +186,4 @@ dkms --sourcetree $srctree --dkmstree $dkmstree mkdeb -m ${REPO} -v $VERSION -k 
 cp $dkmstree/${REPO}/$VERSION/deb/* ./packages/deb/
 
 # upload to ppa
-#dput ppa:yavdr/main ./packages/dsc/$REPO-dkms_$VERSION*.changes
+dput ppa:yavdr/main ./packages/dsc/$REPO-dkms_$VERSION*.changes
