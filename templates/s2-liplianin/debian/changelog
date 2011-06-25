@@ -1,4 +1,4 @@
-DEBIAN_PACKAGE-dkms (MODULE_VERSION) natty; urgency=low
+DEBIAN_PACKAGE-dkms (MODULE_VERSION) lucid; urgency=medium
   * Automatically packaged by DKMS.
 
  -- Marco Scholl <develop@marco-scholl.de>  DATE_STAMP
