@@ -1,4 +1,8 @@
-diff --git a/linux/drivers/media/rc/rc-main.c b/linux/drivers/media/rc/rc-main.c
+---
+ drivers/media/dvb/dvb-usb/dvb-usb-remote.c |    4 ++--
+ drivers/media/rc/rc-main.c                 |    4 ++--
+ 2 files changed, 4 insertions(+), 4 deletions(-)
+
 --- a/linux/drivers/media/rc/rc-main.c
 +++ b/linux/drivers/media/rc/rc-main.c
 @@ -318,7 +318,7 @@ static unsigned int ir_establish_scancod
@@ -9,8 +13,8 @@ diff --git a/linux/drivers/media/rc/rc-main.c b/linux/drivers/media/rc/rc-main.c
 +			 int scancode, int keycode)
  {
  	struct rc_dev *rdev = input_get_drvdata(idev);
- 	struct ir_scancode_table *rc_tab = &rdev->rc_tab;
-@@ -423,7 +423,7 @@ static unsigned int ir_lookup_by_scancod
+ 	struct rc_map *rc_map = &rdev->rc_map;
+@@ -422,7 +422,7 @@ static unsigned int ir_lookup_by_scancod
   * This routine is used to handle evdev EVIOCGKEY ioctl.
   */
  static int ir_getkeycode(struct input_dev *idev,
@@ -18,8 +22,7 @@ diff --git a/linux/drivers/media/rc/rc-main.c b/linux/drivers/media/rc/rc-main.c
 +			 int scancode, int *keycode)
  {
  	struct rc_dev *rdev = input_get_drvdata(idev);
- 	struct ir_scancode_table *rc_tab = &rdev->rc_tab;
-diff --git a/linux/drivers/media/dvb/dvb-usb/dvb-usb-remote.c b/linux/drivers/media/dvb/dvb-usb/dvb-usb-remote.c
+ 	struct rc_map *rc_map = &rdev->rc_map;
 --- a/linux/drivers/media/dvb/dvb-usb/dvb-usb-remote.c
 +++ b/linux/drivers/media/dvb/dvb-usb/dvb-usb-remote.c
 @@ -9,7 +9,7 @@
