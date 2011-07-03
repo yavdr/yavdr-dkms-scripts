@@ -30,7 +30,7 @@ diff -ru media_build-unpatched/linux/drivers/media/common/saa716x/saa716x_ff_ir.
 -	for (i = 0; i < ARRAY_SIZE(ir->key_map); i++)
 -		ir->key_map[i] = i+1;
 +	if (saa716x->ir_keymap == 1) {
-+		ir->key_map[0x01] = KEY_POWER;
++		ir->key_map[0x01] = KEY_POWER2;
 +		ir->key_map[0x18] = KEY_MUTE;
 +		ir->key_map[0x03] = KEY_1;
 +		ir->key_map[0x04] = KEY_2;
@@ -64,13 +64,13 @@ diff -ru media_build-unpatched/linux/drivers/media/common/saa716x/saa716x_ff_ir.
 +		ir->key_map[0x0e] = KEY_LEFT;
 +		ir->key_map[0x10] = KEY_RIGHT;
 +		ir->key_map[0x22] = KEY_EPG;
-+		ir->key_map[0x13] = KEY_BACK;
++		ir->key_map[0x13] = KEY_ESC;
 +		ir->key_map[0x53] = KEY_RECORD;
 +		ir->key_map[0x54] = KEY_REWIND;
 +		ir->key_map[0x55] = KEY_PLAY;
 +		ir->key_map[0x56] = KEY_FASTFORWARD;
 +		ir->key_map[0x46] = KEY_PVR;
-+		ir->key_map[0x47] = KEY_PREVIOUS;
++		ir->key_map[0x47] = KEY_BACK;
 +		ir->key_map[0x35] = KEY_STOP;
 +		ir->key_map[0x30] = KEY_NEXT;
 +	} else {
