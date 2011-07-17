@@ -1,15 +1,9 @@
-From 2aca6d5da0595c0f06fdb761663f9777d23f03c1 Mon Sep 17 00:00:00 2001
-From: Christoph Pinkl <christoph.pinkl@gmail.com>
-Date: Wed, 25 May 2011 12:09:04 +0200
-Subject: [PATCH] Add remote control support for mantis
-
-
-Signed-off-by: Christoph Pinkl <christoph.pinkl@gmail.com>
+Signed-off-by: Christoph Pinkl <christoph.pinkl@xxxxxxxxx>
 ---
  drivers/media/dvb/mantis/hopper_cards.c            |    2 +-
  drivers/media/dvb/mantis/mantis_cards.c            |   27 +++-
  drivers/media/dvb/mantis/mantis_common.h           |   23 ++-
- drivers/media/dvb/mantis/mantis_input.c            |  168 +++++++-------------
+ drivers/media/dvb/mantis/mantis_input.c            |  169 +++++++------------
  drivers/media/dvb/mantis/mantis_input.h            |   28 ++++
  drivers/media/dvb/mantis/mantis_uart.c             |   18 +--
  drivers/media/dvb/mantis/mantis_vp1041.c           |   20 +++
@@ -20,7 +14,7 @@ Signed-off-by: Christoph Pinkl <christoph.pinkl@gmail.com>
  .../media/rc/keymaps/rc-terratec-cinergy-s2-hd.c   |   85 ++++++++++
  drivers/media/rc/keymaps/rc-twinhan-dtv-cab-ci.c   |   95 +++++++++++
  include/media/rc-map.h                             |    3 +
- 14 files changed, 438 insertions(+), 127 deletions(-)
+ 14 files changed, 439 insertions(+), 127 deletions(-)
  create mode 100644 drivers/media/dvb/mantis/mantis_input.h
  create mode 100644 drivers/media/rc/keymaps/rc-terratec-cinergy-c-pci.c
  create mode 100644 drivers/media/rc/keymaps/rc-terratec-cinergy-s2-hd.c
@@ -177,7 +171,7 @@ index bd400d2..a61046d 100644
  
  #define MANTIS_HIF_STATUS	(mantis->gpio_status)
 diff --git a/linux/drivers/media/dvb/mantis/mantis_input.c b/linux/drivers/media/dvb/mantis/mantis_input.c
-index db6d54d..615429d 100644
+index db6d54d..17a5c17 100644
 --- a/linux/drivers/media/dvb/mantis/mantis_input.c
 +++ b/linux/drivers/media/dvb/mantis/mantis_input.c
 @@ -18,7 +18,6 @@
@@ -392,7 +386,7 @@ index 0000000..a00666f
 +/*
 +	Mantis PCI bridge driver
 +
-+	Copyright (C) Manu Abraham (abraham.manu@gmail.com)
++	Copyright (C) Manu Abraham (abraham.manu@xxxxxxxxx)
 +
 +	This program is free software; you can redistribute it and/or modify
 +	it under the terms of the GNU General Public License as published by
@@ -889,7 +883,7 @@ index 0000000..2b30374
 +module_exit(exit_rc_map_twinhan_dtv_cab_ci)
 +
 +MODULE_LICENSE("GPL");
-diff --git a/linux/include/media/rc-map.h b/linux/include/media/rc-map.h
+diff --git a/include/media/rc-map.h b/include/media/rc-map.h
 index 4e1409e..8628f07 100644
 --- a/linux/include/media/rc-map.h
 +++ b/linux/include/media/rc-map.h
@@ -910,6 +904,4 @@ index 4e1409e..8628f07 100644
  #define RC_MAP_TWINHAN_VP1027_DVBS       "rc-twinhan1027"
  #define RC_MAP_VIDEOMATE_M1F             "rc-videomate-m1f"
  #define RC_MAP_VIDEOMATE_S350            "rc-videomate-s350"
--- 
-1.7.0.4
 

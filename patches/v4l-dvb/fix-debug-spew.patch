@@ -1,0 +1,10 @@
+--- a/linux/drivers/media/video/omap3isp/Makefile	2011-07-17 06:17:05.000000000 +0000
++++ b/linux/drivers/media/video/omap3isp/Makefile	2011-07-17 06:16:50.000000000 +0000
+@@ -1,6 +1,6 @@
+ # Makefile for OMAP3 ISP driver
+ 
+-ifdef CONFIG_VIDEO_OMAP3_DEBUG
++ifeq ($(CONFIG_VIDEO_OMAP3_DEBUG),y)
+ EXTRA_CFLAGS += -DDEBUG
+ endif
+ 
