@@ -11790,3 +11790,61 @@ diff -Nur v4l-dvb/linux/include/linux/dvb/osd.h v4l-dvb-patched/linux/include/li
 +#define OSD_RAW_DATA           _IOWR('o', 163, osd_raw_data_t)
 +
  #endif
+--- a/linux/drivers/media/common/saa716x/saa716x_ff_main.c	Fri Jun 03 18:21:32 2011 +0200
++++ b/linux/drivers/media/common/saa716x/saa716x_ff_main.c	Sun Aug 21 17:11:06 2011 +0200
+@@ -1540,8 +1540,8 @@
+ 
+ 	.ts1_mode		= STV090x_TSMODE_SERIAL_CONTINUOUS,
+ 	.ts2_mode		= STV090x_TSMODE_SERIAL_CONTINUOUS,
+-	.ts1_clk		= 90000000,
+-	.ts2_clk		= 90000000,
++	.ts1_clk		= 135000000,
++	.ts2_clk		= 135000000,
+ 
+ 	.repeater_level		= STV090x_RPTLEVEL_16,
+
+--- a/linux/drivers/media/common/saa716x/saa716x_ff.h	Sun Aug 21 17:11:06 2011 +0200
++++ b/linux/drivers/media/common/saa716x/saa716x_ff.h	Sun Aug 21 17:18:00 2011 +0200
+@@ -135,7 +135,6 @@
+ 	u64			audio_pts;
+ 	u64			video_pts;
+ 	u64			current_stc;
+-	u32			remote_event;
+ 
+ 	u32			int_count_enable;
+ 	u32			total_int_count;
+--- a/linux/drivers/media/common/saa716x/saa716x_ff_main.c	Sun Aug 21 17:11:06 2011 +0200
++++ b/linux/drivers/media/common/saa716x/saa716x_ff_main.c	Sun Aug 21 17:18:00 2011 +0200
+@@ -1426,18 +1426,25 @@
+ 
+ 		if (phiISR & ISR_REMOTE_EVENT_MASK) {
+ 			u8 data[4];
++			u32 remote_event;
+ 
+ 			saa716x_phi_read(saa716x, ADDR_REMOTE_EVENT, data, 4);
+-			sti7109->remote_event = (data[3] << 24)
+-					      | (data[2] << 16)
+-					      | (data[1] << 8)
+-					      | (data[0]);
++			remote_event = (data[3] << 24)
++				     | (data[2] << 16)
++				     | (data[1] << 8)
++				     | (data[0]);
++			memset(data, 0, sizeof(data));
++			saa716x_phi_write(saa716x, ADDR_REMOTE_EVENT, data, 4);
+ 
+ 			phiISR &= ~ISR_REMOTE_EVENT_MASK;
+ 			SAA716x_EPWR(PHI_1, FPGA_ADDR_EMI_ICLR, ISR_REMOTE_EVENT_MASK);
+ 
+-			dprintk(SAA716x_INFO, 1, "REMOTE EVENT: %u", sti7109->remote_event);
+-			saa716x_ir_handler(saa716x, sti7109->remote_event);
++			if (remote_event == 0) {
++				dprintk(SAA716x_ERROR, 1, "REMOTE EVENT: %u ignored", remote_event);
++			} else {
++				dprintk(SAA716x_INFO, 1, "REMOTE EVENT: %u", remote_event);
++				saa716x_ir_handler(saa716x, remote_event);
++			}
+ 		}
+ 
+ 		if (phiISR & ISR_DVO_FORMAT_MASK) {
+
