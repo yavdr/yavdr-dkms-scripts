@@ -79,7 +79,7 @@ if [ -z "$KERNEL" ]; then
 fi
 
 case $1 in 
-   s2-liplianin|v4l-dvb) 
+   s2-liplianin|v4l-dvb|linux-tbs-drivers) 
            REPO=$1
 	   ;;
    clean)
@@ -103,8 +103,9 @@ case $1 in
 esac
 
 VERSION=0~`/bin/date +%0Y%0m%0d`.$(cat repositories/$REPO.version)
-#-1yavdr1
+if find patches/$REPO/*patch &> /dev/null ; then 
 PATCHES=( `find patches/$REPO/* -name '*.patch' | tac` )
+fi
 
 if [ -e "config-$REPO" ]; then 
     cp config-$REPO repositories/$REPO/v4l/.config
@@ -169,7 +170,10 @@ find $D -name '*.c' | xargs sed -i '/^MODULE_VERSION\>/d'
 
 cp dkms.conf.$REPO $D/dkms.conf
 mkdir $D/patches
+
+if find patches/$REPO/*patch &> /dev/null; then 
 cp patches/$REPO/*.patch $D/patches
+fi 
 
 cp -r templates/$REPO $D/${REPO}-dkms-mkdsc
 cp -r templates/$REPO $D/${REPO}-dkms-mkdeb
