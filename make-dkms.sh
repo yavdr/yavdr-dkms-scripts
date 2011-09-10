@@ -111,6 +111,9 @@ if [ -e "config-$REPO" ]; then
     cp config-$REPO repositories/$REPO/v4l/.config
 fi 
 
+# generate changelog
+cat changelog | sed "s/RELEASE/$RELEASE/" | sed "s/DEBEMAIL/$DEBEMAIL/" | sed "s/DEBFULLNAME/$DEBFULLNAME/" > templates/$REPO/debian/changelog
+
 # generate dkms.conf
 cat <<EOF > dkms.conf.$REPO
 PACKAGE_NAME=$REPO
@@ -174,8 +177,6 @@ mkdir $D/patches
 if find patches/$REPO/*patch &> /dev/null; then 
 cp patches/$REPO/*.patch $D/patches
 fi 
-
-cat changelog | sed s/RELEASE/$RELEASE/ | sed s/DEBEMAIL/$DEBEMAIL/ | sed s/DEBFULLNAME/$DEBFULLNAME/ > templates/$REPO/debian/changelog
 
 cp -r templates/$REPO $D/${REPO}-dkms-mkdsc
 cp -r templates/$REPO $D/${REPO}-dkms-mkdeb
