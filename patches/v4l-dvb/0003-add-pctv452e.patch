@@ -781,9 +781,9 @@ index 0000000..1be24e5
 +
 +		printk("%s Enter\n", __func__);
 +
-+	a->fe = dvb_attach(stb0899_attach, &stb0899_config, &a->dev->i2c_adap);
-+	if (!a->fe) return -ENODEV;
-+	if ((dvb_attach(lnbp22_attach, a->fe, &a->dev->i2c_adap)) == 0) {
++	a->fe_adap[0].fe = dvb_attach(stb0899_attach, &stb0899_config, &a->dev->i2c_adap);
++	if (!a->fe_adap[0].fe) return -ENODEV;
++	if ((dvb_attach(lnbp22_attach, a->fe_adap[0].fe, &a->dev->i2c_adap)) == 0) {
 +		printk("Warning: cannot attach lnbp22\n");
 +	}
 +
@@ -800,8 +800,8 @@ index 0000000..1be24e5
 +
 +int pctv452e_tuner_attach(struct dvb_usb_adapter *a) {
 +		printk("%s Enter\n", __func__);
-+	if (!a->fe) return -ENODEV;
-+	if (dvb_attach(stb6100_attach, a->fe, &stb6100_config, &a->dev->i2c_adap) == 0) {
++	if (!a->fe_adap[0].fe) return -ENODEV;
++	if (dvb_attach(stb6100_attach, a->fe_adap[0].fe, &stb6100_config, &a->dev->i2c_adap) == 0) {
 +		printk("%s failed\n", __func__);
 +		return -ENODEV;
 +	}
@@ -1381,7 +1381,7 @@ index 0000000..1be24e5
 +
 +	.num_adapters     = 1,
 +	.adapter = {{
-+		.caps	     = 0,
++		.num_frontends = 1, .fe = {{ .caps	     = 0,
 +		.pid_filter_count = 0,
 +
 +		.streaming_ctrl   = NULL,
@@ -1401,7 +1401,7 @@ index 0000000..1be24e5
 +					.interval     = 1
 +				}
 +			}
-+		},
++		},}},
 +		.size_of_priv     = 0
 +	}},
 +
@@ -1439,7 +1439,7 @@ index 0000000..1be24e5
 +
 +	.num_adapters		= 1,
 +	.adapter = {{
-+		.caps = 0,
++		.num_frontends = 1, .fe = {{ .caps = 0,
 +		.pid_filter_count = 0,
 +
 +		.streaming_ctrl = NULL,
@@ -1459,7 +1459,7 @@ index 0000000..1be24e5
 +					.interval = 1
 +				}
 +			}
-+		},
++		},}},
 +		.size_of_priv = 0
 +	}},
 +

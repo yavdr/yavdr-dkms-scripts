@@ -415,14 +415,16 @@ diff --git a/linux/drivers/media/dvb/mantis/mantis_uart.c b/linux/drivers/media/
 index f807c8b..f6f343e 100644
 --- a/linux/drivers/media/dvb/mantis/mantis_uart.c
 +++ b/linux/drivers/media/dvb/mantis/mantis_uart.c
-@@ -19,7 +19,6 @@
- */
- 
- #include <linux/kernel.h>
--#include <linux/spinlock.h>
- 
- #include <linux/signal.h>
- #include <linux/sched.h>
+#@@ -19,7 +19,7 @@
+# */
+# 
+#  #include <linux/kernel.h>
+# -#include <linux/spinlock.h>
+#- 
+#+ #include <asm/io.h>
+#+
+#  #include <linux/signal.h>
+#- #include <linux/sched.h>
 @@ -34,6 +33,7 @@
  #include "mantis_common.h"
  #include "mantis_reg.h"
