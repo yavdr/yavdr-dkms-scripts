@@ -2,4 +2,6 @@ repositories/*
 updates/*
 packages/*
 dkms.conf.v4l-dvb
+dkms.conf.s2-liplianin
 temp-build/*
+templates/*/debian/changelog
