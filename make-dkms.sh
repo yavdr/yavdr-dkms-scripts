@@ -175,6 +175,8 @@ if find patches/$REPO/*patch &> /dev/null; then
 cp patches/$REPO/*.patch $D/patches
 fi 
 
+cat changelog | sed s/RELEASE/$RELEASE/ | sed s/DEBEMAIL/$DEBEMAIL/ | sed s/DEBFULLNAME/$DEBFULLNAME/ > templates/$REPO/debian/changelog
+
 cp -r templates/$REPO $D/${REPO}-dkms-mkdsc
 cp -r templates/$REPO $D/${REPO}-dkms-mkdeb
 
