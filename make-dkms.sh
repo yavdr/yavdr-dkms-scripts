@@ -190,4 +190,4 @@ dkms --sourcetree $srctree --dkmstree $dkmstree mkdeb -m ${REPO} -v $VERSION -k 
 cp $dkmstree/${REPO}/$VERSION/deb/* ./packages/deb/
 
 # upload to ppa
-dput ppa:yavdr/main ./packages/dsc/$REPO-dkms_$VERSION*.changes
+#dput ppa:yavdr/main ./packages/dsc/$REPO-dkms_$VERSION*.changes
