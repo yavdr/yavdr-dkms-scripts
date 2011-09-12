@@ -1,28 +1,28 @@
 #!/bin/bash -e
 
 # call with repo name and make sure all files exist
-# 
+#
 # - patches
 # - template
 # - repo
 #
 
 ###########
-# make sure linux-headers is installed 
+# make sure linux-headers is installed
 # and adapt to the kernel you like to compile for
 ########################
 
 update-v4l () {
 echo "v4l-dvb: Update started"
 # BEWARE this is more a notepad to remamber what has to be done, if it works you are lucky !!!
-if [ -d updates/v4l-dvb -a -d updates/media_build ]; then 
+if [ -d updates/v4l-dvb -a -d updates/media_build ]; then
     cd updates/v4l-dvb
     git pull
     cd ..
     cd media_build
     git pull
     cd ..
-else 
+else
     cd updates/
     git clone git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux-2.6.git v4l-dvb
     cd v4l-dvb
@@ -52,14 +52,14 @@ echo "v4l-dvb: Update ended. Now: $VERSION"
 update-s2-liplianin () {
 cd updates
 echo "s2-liplianin: Update started"
-if [ -d s2-liplianin ]; then 
+if [ -d s2-liplianin ]; then
     cd s2-liplianin
     hg pull
     hg update
     cd ..
-else 
-    hg clone http://mercurial.intuxication.org/hg/s2-liplianin
-fi 
+else
+    hg clone http://mercurial.intuxication.org/hg/s2-liplianin-ahead s2-liplianin
+fi
 rm -rf ../repositories/s2-liplianin
 tar c s2-liplianin --exclude=".hg" --exclude ".git" | tar x -C ../repositories/
 VERSION=`hg identify -n s2-liplianin | cut -d'+' -f1`
@@ -78,18 +78,18 @@ if [ -z "$KERNEL" ]; then
     fi
 fi
 
-case $1 in 
-   s2-liplianin|v4l-dvb|linux-tbs-drivers) 
+case $1 in
+   s2-liplianin|v4l-dvb|linux-tbs-drivers)
            REPO=$1
 	   ;;
    clean)
-           rm -rf tmp.* &> /dev/null || /bin/true 
-           rm -rf temp-build &> /dev/null || /bin/true 
+           rm -rf tmp.* &> /dev/null || /bin/true
+           rm -rf temp-build &> /dev/null || /bin/true
            rm dkms.conf.* &> /dev/null || /bin/true
 
            exit 0
            ;;
-   update) 
+   update)
            echo -n "BEWARE: the code to do this has more note pad quality. Stop here "
            read BLA
            mkdir -p updates
@@ -103,13 +103,13 @@ case $1 in
 esac
 
 VERSION=0~`/bin/date +%0Y%0m%0d`.$(cat repositories/$REPO.version)
-if find patches/$REPO/*patch &> /dev/null ; then 
+if find patches/$REPO/*patch &> /dev/null ; then
 PATCHES=( `find patches/$REPO/* -name '*.patch' | tac` )
 fi
 
-if [ -e "config-$REPO" ]; then 
+if [ -e "config-$REPO" ]; then
     cp config-$REPO repositories/$REPO/v4l/.config
-fi 
+fi
 
 # generate changelog
 cat changelog | sed "s/RELEASE/$RELEASE/" | sed "s/DEBEMAIL/$DEBEMAIL/" | sed "s/DEBFULLNAME/$DEBFULLNAME/" > templates/$REPO/debian/changelog
@@ -123,7 +123,7 @@ MAKE[0]="make -j5 VER=\$kernelver"
 EOF
 
 PATCHCOUNT=0
-for PATCH in ${PATCHES[@]} ; do 
+for PATCH in ${PATCHES[@]} ; do
 echo "PATCH[$PATCHCOUNT]=`basename $PATCH`" >> dkms.conf.$REPO
 if [ -f "${PATCH}.match" ]; then
     echo "PATCH_MATCH[$PATCHCOUNT]=\"`cat ${PATCH}.match`\"" >> dkms.conf.$REPO
@@ -147,7 +147,7 @@ cd temp-build
 
 # determine module names and paths from temporary build
 i=0
-for f in `find -name *.ko`; do 
+for f in `find -name *.ko`; do
     M=`basename $f .ko`
     echo "BUILT_MODULE_NAME[$i]=$M" >> ../dkms.conf.$REPO
     echo "BUILT_MODULE_LOCATION[$i]=`dirname $f`" >> ../dkms.conf.$REPO
@@ -174,9 +174,9 @@ find $D -name '*.c' | xargs sed -i '/^MODULE_VERSION\>/d'
 cp dkms.conf.$REPO $D/dkms.conf
 mkdir $D/patches
 
-if find patches/$REPO/*patch &> /dev/null; then 
-cp patches/$REPO/*.patch $D/patches
-fi 
+if find patches/$REPO/*patch &> /dev/null; then
+  cp patches/$REPO/*.patch $D/patches
+fi
 
 cp -r templates/$REPO $D/${REPO}-dkms-mkdsc
 cp -r templates/$REPO $D/${REPO}-dkms-mkdeb
