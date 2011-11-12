@@ -27,4 +27,20 @@ and uploaded to launchpad.
 
 call make-dkms.sh clean to clean up after successfull build or when you like
 
+call make-dkms.sh update to update s2-liplianin and v4l-dvb repositories from remote.
+For v4l-dvb it might be needed to change to the latest for.... branch of media_tree in order 
+to get latest code. 
+
+If you want to upload packages to ppa, some things need to be configured:
+- comment out the dput to really upload
+- make sure gpg key is configured for being able to sign the package
+- make sure you are using a bugfixed version of dkms (i.e. not the ubuntu version, but the yavdr version) 
+- make sure you export DEBFULLNAME and DEBEMAIL before starting the script (i.e. adding the export to your .profile)
+
+The whole script is intended to simplify creating a recent dvb driver package and is in some parts based 
+on a script created by Martin Pitt, which he has published few years back. It's not intended for 
+newbies to create dkms magically. Patches are welcome, question only if you know what you are doing. 
+
+tbs drivers are updated by downloading and unpacking the driver tarball into the repository folder and update the version manually. 
+
 Good Luck ! ;) 
