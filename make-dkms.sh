@@ -28,7 +28,7 @@ else
     cd v4l-dvb
     git remote add linuxtv git://linuxtv.org/media_tree.git
     git remote update
-    git checkout -b media-master remotes/linuxtv/staging/for_v3.2
+    git checkout -b media-master remotes/linuxtv/staging/for_v3.3
     cd ..
     git clone git://linuxtv.org/media_build.git
 fi
@@ -68,8 +68,10 @@ cd ..
 echo "s2-liplianin: Update ended. Now: $VERSION"
 }
 
-KERNEL=2.6.38-11-generic
-RELEASE=natty
+KERNEL=3.0.0-12-generic
+RELEASE=oneiric
+#KERNEL=2.6.38-12-generic
+#RELEASE=natty
 if [ -z "$KERNEL" ]; then
     if [ ! -z "$2" ]; then
     	KERNEL="$2"

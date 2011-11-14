@@ -1,4 +1,4 @@
-DEBIAN_PACKAGE-dkms (MODULE_VERSION) natty; urgency=medium
+DEBIAN_PACKAGE-dkms (MODULE_VERSION) oneiric; urgency=medium
   * Automatically packaged by DKMS.
 
  -- DEBFULLNAME <DEBEMAIL>  DATE_STAMP

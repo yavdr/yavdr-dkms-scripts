@@ -6,9 +6,43 @@ diff -Nur v4l-dvb/linux/drivers/media/common/Makefile v4l-dvb-patched/linux/driv
  obj-$(CONFIG_VIDEO_SAA7146) += saa7146.o
  obj-$(CONFIG_VIDEO_SAA7146_VV) += saa7146_vv.o
 +obj-$(CONFIG_SAA716X_CORE) += saa716x/
+diff -Nur v4l-dvb/linux/drivers/media/Kconfig v4l-dvb-patched/linux/drivers/media/Kconfig
+--- v4l-dvb/linux/drivers/media/Kconfig	2011-05-23 13:56:52.000000000 +0200
++++ v4l-dvb-patched/linux/drivers/media/Kconfig	2011-06-05 10:16:41.961993160 +0200
+@@ -114,4 +114,6 @@
+ 
+ source "drivers/media/dvb/Kconfig"
+ 
++source "drivers/media/common/saa716x/Kconfig"
++
+ endif # MEDIA_SUPPORT
+diff -Nur v4l-dvb/linux/include/linux/dvb/osd.h v4l-dvb-patched/linux/include/linux/dvb/osd.h
+--- v4l-dvb/linux/include/linux/dvb/osd.h	2011-05-23 13:56:54.000000000 +0200
++++ v4l-dvb-patched/linux/include/linux/dvb/osd.h	2011-06-05 10:28:45.441992858 +0200
+@@ -141,4 +141,20 @@
+ #define OSD_SEND_CMD            _IOW('o', 160, osd_cmd_t)
+ #define OSD_GET_CAPABILITY      _IOR('o', 161, osd_cap_t)
+ 
++typedef struct osd_raw_cmd_s {
++	const void __user *cmd_data;
++	int cmd_len;
++	void __user *result_data;
++	int result_len;
++} osd_raw_cmd_t;
++
++typedef struct osd_raw_data_s {
++	const void __user *data_buffer;
++	int data_length;
++	int data_handle;
++} osd_raw_data_t;
++
++#define OSD_RAW_CMD            _IOWR('o', 162, osd_raw_cmd_t)
++#define OSD_RAW_DATA           _IOWR('o', 163, osd_raw_data_t)
++
+ #endif
 diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/Kconfig v4l-dvb-patched/linux/drivers/media/common/saa716x/Kconfig
 --- v4l-dvb/linux/drivers/media/common/saa716x/Kconfig	1970-01-01 01:00:00.000000000 +0100
-+++ v4l-dvb-patched/linux/drivers/media/common/saa716x/Kconfig	2011-06-05 10:13:46.481993234 +0200
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/Kconfig	2011-11-14 23:52:58.160789171 +0100
 @@ -0,0 +1,63 @@
 +menuconfig SAA716X_SUPPORT
 +	bool "Support for SAA716x family from NXP/Philips"
@@ -75,8 +109,8 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/Kconfig v4l-dvb-patched/lin
 +endif # SAA716X_SUPPORT
 diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/Makefile v4l-dvb-patched/linux/drivers/media/common/saa716x/Makefile
 --- v4l-dvb/linux/drivers/media/common/saa716x/Makefile	1970-01-01 01:00:00.000000000 +0100
-+++ v4l-dvb-patched/linux/drivers/media/common/saa716x/Makefile	2011-06-05 10:13:46.481993234 +0200
-@@ -0,0 +1,25 @@
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/Makefile	2011-11-14 23:52:58.160789171 +0100
+@@ -0,0 +1,26 @@
 +saa716x_core-objs	:= saa716x_pci.o	\
 +			   saa716x_i2c.o	\
 +			   saa716x_cgu.o	\
@@ -94,6 +128,7 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/Makefile v4l-dvb-patched/li
 +			   saa716x_spi.o
 +
 +saa716x_ff-objs		:= saa716x_ff_main.o	\
++                           saa716x_ff_cmd.o	\
 +			   saa716x_ff_ir.o
 +
 +obj-$(CONFIG_SAA716X_CORE)	  += saa716x_core.o
@@ -104,7 +139,7 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/Makefile v4l-dvb-patched/li
 +EXTRA_CFLAGS = -Idrivers/media/dvb/dvb-core/
 diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_adap.c v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_adap.c
 --- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_adap.c	1970-01-01 01:00:00.000000000 +0100
-+++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_adap.c	2011-06-05 10:13:46.481993234 +0200
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_adap.c	2011-11-14 23:52:58.160789171 +0100
 @@ -0,0 +1,248 @@
 +#include <linux/bitops.h>
 +
@@ -356,7 +391,7 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_adap.c v4l-dvb-patc
 +EXPORT_SYMBOL(saa716x_dvb_exit);
 diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_adap.h v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_adap.h
 --- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_adap.h	1970-01-01 01:00:00.000000000 +0100
-+++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_adap.h	2011-06-05 10:13:46.481993234 +0200
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_adap.h	2011-11-14 23:52:58.160789171 +0100
 @@ -0,0 +1,9 @@
 +#ifndef __SAA716x_ADAP_H
 +#define __SAA716x_ADAP_H
@@ -369,7 +404,7 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_adap.h v4l-dvb-patc
 +#endif /* __SAA716x_ADAP_H */
 diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_aip.c v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_aip.c
 --- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_aip.c	1970-01-01 01:00:00.000000000 +0100
-+++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_aip.c	2011-06-05 10:13:46.481993234 +0200
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_aip.c	2011-11-14 23:52:58.160789171 +0100
 @@ -0,0 +1,20 @@
 +#include <linux/kernel.h>
 +
@@ -393,7 +428,7 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_aip.c v4l-dvb-patch
 +EXPORT_SYMBOL_GPL(saa716x_aip_disable);
 diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_aip.h v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_aip.h
 --- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_aip.h	1970-01-01 01:00:00.000000000 +0100
-+++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_aip.h	2011-06-05 10:13:46.481993234 +0200
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_aip.h	2011-11-14 23:52:58.160789171 +0100
 @@ -0,0 +1,9 @@
 +#ifndef __SAA716x_AIP_H
 +#define __SAA716x_AIP_H
@@ -406,7 +441,7 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_aip.h v4l-dvb-patch
 +#endif /* __SAA716x_AIP_H */
 diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_aip_reg.h v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_aip_reg.h
 --- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_aip_reg.h	1970-01-01 01:00:00.000000000 +0100
-+++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_aip_reg.h	2011-06-05 10:13:46.481993234 +0200
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_aip_reg.h	2011-11-14 23:52:58.160789171 +0100
 @@ -0,0 +1,62 @@
 +#ifndef __SAA716x_AIP_REG_H
 +#define __SAA716x_AIP_REG_H
@@ -472,7 +507,7 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_aip_reg.h v4l-dvb-p
 +#endif /* __SAA716x_AIP_REG_H */
 diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_boot.c v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_boot.c
 --- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_boot.c	1970-01-01 01:00:00.000000000 +0100
-+++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_boot.c	2011-06-05 10:13:46.481993234 +0200
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_boot.c	2011-11-14 23:52:58.160789171 +0100
 @@ -0,0 +1,319 @@
 +#include <linux/delay.h>
 +
@@ -795,7 +830,7 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_boot.c v4l-dvb-patc
 +EXPORT_SYMBOL_GPL(saa716x_core_reset);
 diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_boot.h v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_boot.h
 --- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_boot.h	1970-01-01 01:00:00.000000000 +0100
-+++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_boot.h	2011-06-05 10:13:46.481993234 +0200
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_boot.h	2011-11-14 23:52:58.160789171 +0100
 @@ -0,0 +1,18 @@
 +#ifndef __SAA716x_BOOT_H
 +#define __SAA716x_BOOT_H
@@ -817,8 +852,8 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_boot.h v4l-dvb-patc
 +#endif /* __SAA716x_BOOT_H */
 diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_budget.c v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_budget.c
 --- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_budget.c	1970-01-01 01:00:00.000000000 +0100
-+++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_budget.c	2011-06-05 10:13:46.481993234 +0200
-@@ -0,0 +1,432 @@
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_budget.c	2011-11-14 23:52:58.164789171 +0100
+@@ -0,0 +1,516 @@
 +#include <linux/module.h>
 +#include <linux/moduleparam.h>
 +#include <linux/kernel.h>
@@ -841,14 +876,14 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_budget.c v4l-dvb-pa
 +
 +#include "saa716x_mod.h"
 +
-+#include "saa716x_msi_reg.h"
 +#include "saa716x_gpio_reg.h"
++#include "saa716x_greg_reg.h"
++#include "saa716x_msi_reg.h"
 +
-+#include "saa716x_vip.h"
-+#include "saa716x_aip.h"
++#include "saa716x_adap.h"
++#include "saa716x_i2c.h"
 +#include "saa716x_msi.h"
 +#include "saa716x_budget.h"
-+#include "saa716x_adap.h"
 +#include "saa716x_gpio.h"
 +#include "saa716x_rom.h"
 +#include "saa716x_spi.h"
@@ -920,6 +955,8 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_budget.c v4l-dvb-pa
 +		goto fail3;
 +	}
 +
++	saa716x_gpio_init(saa716x);
++
 +	err = saa716x_dump_eeprom(saa716x);
 +	if (err) {
 +		dprintk(SAA716x_ERROR, 1, "SAA716x EEPROM dump failed");
@@ -929,6 +966,11 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_budget.c v4l-dvb-pa
 +	if (err) {
 +		dprintk(SAA716x_ERROR, 1, "SAA716x EEPROM read failed");
 +	}
++
++	/* set default port mapping */
++	SAA716x_EPWR(GREG, GREG_VI_CTRL, 0x2C688F44);
++	/* enable FGPI3 and FGPI0 for TS input from Port 3 and 6 */
++	SAA716x_EPWR(GREG, GREG_FGPI_CTRL, 0x894);
 +
 +	err = saa716x_dvb_init(saa716x);
 +	if (err) {
@@ -1025,15 +1067,72 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_budget.c v4l-dvb-pa
 +		SAA716x_EPRD(DCS, DCSC_INT_ENABLE));
 +#endif
 +
++	if (stat_l) {
++		if (stat_l & MSI_INT_TAGACK_FGPI_0) {
++			tasklet_schedule(&saa716x->fgpi[0].tasklet);
++		}
++		if (stat_l & MSI_INT_TAGACK_FGPI_1) {
++			tasklet_schedule(&saa716x->fgpi[1].tasklet);
++		}
++		if (stat_l & MSI_INT_TAGACK_FGPI_2) {
++			tasklet_schedule(&saa716x->fgpi[2].tasklet);
++		}
++		if (stat_l & MSI_INT_TAGACK_FGPI_3) {
++			tasklet_schedule(&saa716x->fgpi[3].tasklet);
++		}
++	}
++
 +	return IRQ_HANDLED;
 +}
 +
-+static int load_config_vp3071(struct saa716x_dev *saa716x)
++static void demux_worker(unsigned long data)
 +{
-+	int ret = 0;
++	struct saa716x_fgpi_stream_port *fgpi_entry = (struct saa716x_fgpi_stream_port *)data;
++	struct saa716x_dev *saa716x = fgpi_entry->saa716x;
++	struct dvb_demux *demux;
++	u32 fgpi_index;
++	u32 i;
++	u32 write_index;
 +
-+	return ret;
++	fgpi_index = fgpi_entry->dma_channel - 6;
++	demux = NULL;
++	for (i = 0; i < saa716x->config->adapters; i++) {
++		if (saa716x->config->adap_config[i].ts_port == fgpi_index) {
++			demux = &saa716x->saa716x_adap[i].demux;
++			break;
++		}
++	}
++	if (demux == NULL) {
++		printk(KERN_ERR "%s: unexpected channel %u\n",
++		       __func__, fgpi_entry->dma_channel);
++		return;
++	}
++
++	write_index = saa716x_fgpi_get_write_index(saa716x, fgpi_index);
++	if (write_index < 0)
++		return;
++
++	dprintk(SAA716x_DEBUG, 1, "dma buffer = %d", write_index);
++
++	if (write_index == fgpi_entry->read_index) {
++		printk(KERN_DEBUG "%s: called but nothing to do\n", __func__);
++		return;
++	}
++
++	do {
++		u8 *data = (u8 *)fgpi_entry->dma_buf[fgpi_entry->read_index].mem_virt;
++
++		pci_dma_sync_sg_for_cpu(saa716x->pdev,
++			fgpi_entry->dma_buf[fgpi_entry->read_index].sg_list,
++			fgpi_entry->dma_buf[fgpi_entry->read_index].list_len,
++			PCI_DMA_FROMDEVICE);
++
++		dvb_dmx_swfilter(demux, data, 348 * 188);
++
++		fgpi_entry->read_index = (fgpi_entry->read_index + 1) & 7;
++	} while (write_index != fgpi_entry->read_index);
 +}
++
 +
 +#define SAA716x_MODEL_TWINHAN_VP3071	"Twinhan/Azurewave VP-3071"
 +#define SAA716x_DEV_TWINHAN_VP3071	"2x DVB-T"
@@ -1051,19 +1150,12 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_budget.c v4l-dvb-pa
 +	.model_name		= SAA716x_MODEL_TWINHAN_VP3071,
 +	.dev_type		= SAA716x_DEV_TWINHAN_VP3071,
 +	.boot_mode		= SAA716x_EXT_BOOT,
-+	.load_config		= &load_config_vp3071,
 +	.adapters		= 2,
 +	.frontend_attach	= saa716x_vp3071_frontend_attach,
 +	.irq_handler		= saa716x_budget_pci_irq,
 +	.i2c_rate		= SAA716x_I2C_RATE_100,
 +};
 +
-+static int load_config_vp1028(struct saa716x_dev *saa716x)
-+{
-+	int ret = 0;
-+
-+	return ret;
-+}
 +
 +#define SAA716x_MODEL_TWINHAN_VP1028	"Twinhan/Azurewave VP-1028"
 +#define SAA716x_DEV_TWINHAN_VP1028	"DVB-S"
@@ -1149,19 +1241,12 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_budget.c v4l-dvb-pa
 +	.model_name		= SAA716x_MODEL_TWINHAN_VP1028,
 +	.dev_type		= SAA716x_DEV_TWINHAN_VP1028,
 +	.boot_mode		= SAA716x_EXT_BOOT,
-+	.load_config		= &load_config_vp1028,
 +	.adapters		= 1,
 +	.frontend_attach	= saa716x_vp1028_frontend_attach,
 +	.irq_handler		= saa716x_budget_pci_irq,
 +	.i2c_rate		= SAA716x_I2C_RATE_100,
 +};
 +
-+static int load_config_vp6002(struct saa716x_dev *saa716x)
-+{
-+	int ret = 0;
-+
-+	return ret;
-+}
 +
 +#define SAA716x_MODEL_TWINHAN_VP6002	"Twinhan/Azurewave VP-6002"
 +#define SAA716x_DEV_TWINHAN_VP6002	"DVB-S"
@@ -1180,19 +1265,12 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_budget.c v4l-dvb-pa
 +	.model_name		= SAA716x_MODEL_TWINHAN_VP6002,
 +	.dev_type		= SAA716x_DEV_TWINHAN_VP6002,
 +	.boot_mode		= SAA716x_EXT_BOOT,
-+	.load_config		= &load_config_vp6002,
 +	.adapters		= 1,
 +	.frontend_attach	= saa716x_vp6002_frontend_attach,
 +	.irq_handler		= saa716x_budget_pci_irq,
 +	.i2c_rate		= SAA716x_I2C_RATE_100,
 +};
 +
-+static int load_config_knc1_duals2(struct saa716x_dev *saa716x)
-+{
-+	int ret = 0;
-+
-+	return ret;
-+}
 +
 +#define SAA716x_MODEL_KNC1_DUALS2	"KNC One Dual S2"
 +#define SAA716x_DEV_KNC1_DUALS2		"1xDVB-S + 1xDVB-S/S2"
@@ -1211,19 +1289,60 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_budget.c v4l-dvb-pa
 +	.model_name		= SAA716x_MODEL_KNC1_DUALS2,
 +	.dev_type		= SAA716x_DEV_KNC1_DUALS2,
 +	.boot_mode		= SAA716x_EXT_BOOT,
-+	.load_config		= &load_config_knc1_duals2,
 +	.adapters		= 2,
 +	.frontend_attach	= saa716x_knc1_duals2_frontend_attach,
 +	.irq_handler		= saa716x_budget_pci_irq,
 +	.i2c_rate		= SAA716x_I2C_RATE_100,
 +};
 +
++
++#define SAA716x_MODEL_SKYSTAR2_EXPRESS_HD	"SkyStar 2 eXpress HD"
++#define SAA716x_DEV_SKYSTAR2_EXPRESS_HD		"DVB-S/S2"
++
++static int skystar2_express_hd_frontend_attach(struct saa716x_adapter *adapter,
++					       int count)
++{
++	struct saa716x_dev *saa716x = adapter->saa716x;
++
++	if (count < saa716x->config->adapters) {
++		dprintk(SAA716x_DEBUG, 1, "Adapter (%d) SAA716x frontend Init",
++			count);
++		dprintk(SAA716x_DEBUG, 1, "Adapter (%d) Device ID=%02x", count,
++			saa716x->pdev->subsystem_device);
++
++		dprintk(SAA716x_ERROR, 1, "Done!");
++		return 0;
++	}
++exit:
++	dprintk(SAA716x_ERROR, 1, "Frontend attach failed");
++	return -ENODEV;
++}
++
++static struct saa716x_config skystar2_express_hd_config = {
++	.model_name		= SAA716x_MODEL_SKYSTAR2_EXPRESS_HD,
++	.dev_type		= SAA716x_DEV_SKYSTAR2_EXPRESS_HD,
++	.boot_mode		= SAA716x_EXT_BOOT,
++	.adapters		= 1,
++	.frontend_attach	= skystar2_express_hd_frontend_attach,
++	.irq_handler		= saa716x_budget_pci_irq,
++	.i2c_rate		= SAA716x_I2C_RATE_100,
++	.adap_config		= {
++		{
++			/* Adapter 0 */
++			.ts_port = 3, /* using FGPI 3, TODO: check */
++			.worker = demux_worker
++		}
++	}
++};
++
++
 +static struct pci_device_id saa716x_budget_pci_table[] = {
 +
 +	MAKE_ENTRY(TWINHAN_TECHNOLOGIES, TWINHAN_VP_1028, SAA7160, &saa716x_vp1028_config), /* VP-1028 */
 +	MAKE_ENTRY(TWINHAN_TECHNOLOGIES, TWINHAN_VP_3071, SAA7160, &saa716x_vp3071_config), /* VP-3071 */
 +	MAKE_ENTRY(TWINHAN_TECHNOLOGIES, TWINHAN_VP_6002, SAA7160, &saa716x_vp6002_config), /* VP-6002 */
-+	MAKE_ENTRY(KNC_One,		 KNC_Dual_S2,	  SAA7160, &saa716x_knc1_duals2_config),
++	MAKE_ENTRY(KNC_One, KNC_Dual_S2, SAA7160, &saa716x_knc1_duals2_config),
++	MAKE_ENTRY(TECHNISAT, SKYSTAR2_EXPRESS_HD, SAA7160, &skystar2_express_hd_config),
 +	{ }
 +};
 +MODULE_DEVICE_TABLE(pci, saa716x_budget_pci_table);
@@ -1253,8 +1372,8 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_budget.c v4l-dvb-pa
 +MODULE_LICENSE("GPL");
 diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_budget.h v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_budget.h
 --- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_budget.h	1970-01-01 01:00:00.000000000 +0100
-+++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_budget.h	2011-06-05 10:13:46.481993234 +0200
-@@ -0,0 +1,12 @@
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_budget.h	2011-11-14 23:52:58.164789171 +0100
+@@ -0,0 +1,15 @@
 +#ifndef __SAA716x_BUDGET_H
 +#define __SAA716x_BUDGET_H
 +
@@ -1266,10 +1385,13 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_budget.h v4l-dvb-pa
 +#define KNC_One			0x1894
 +#define KNC_Dual_S2		0x0110
 +
++#define TECHNISAT		0x1AE4
++#define SKYSTAR2_EXPRESS_HD	0x0700
++
 +#endif /* __SAA716x_BUDGET_H */
 diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_cgu.c v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_cgu.c
 --- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_cgu.c	1970-01-01 01:00:00.000000000 +0100
-+++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_cgu.c	2011-06-05 10:13:46.481993234 +0200
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_cgu.c	2011-11-14 23:52:58.164789171 +0100
 @@ -0,0 +1,539 @@
 +#include <linux/delay.h>
 +
@@ -1812,7 +1934,7 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_cgu.c v4l-dvb-patch
 +EXPORT_SYMBOL(saa716x_cgu_init);
 diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_cgu.h v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_cgu.h
 --- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_cgu.h	1970-01-01 01:00:00.000000000 +0100
-+++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_cgu.h	2011-06-05 10:13:46.481993234 +0200
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_cgu.h	2011-11-14 23:52:58.164789171 +0100
 @@ -0,0 +1,61 @@
 +#ifndef __SAA716x_CGU_H
 +#define __SAA716x_CGU_H
@@ -1877,7 +1999,7 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_cgu.h v4l-dvb-patch
 +#endif /* __SAA716x_CGU_H */
 diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_cgu_reg.h v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_cgu_reg.h
 --- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_cgu_reg.h	1970-01-01 01:00:00.000000000 +0100
-+++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_cgu_reg.h	2011-06-05 10:13:46.481993234 +0200
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_cgu_reg.h	2011-11-14 23:52:58.164789171 +0100
 @@ -0,0 +1,178 @@
 +#ifndef __SAA716x_CGU_REG_H
 +#define __SAA716x_CGU_REG_H
@@ -2059,7 +2181,7 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_cgu_reg.h v4l-dvb-p
 +#endif /* __SAA716x_CGU_REG_H */
 diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_dcs_reg.h v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_dcs_reg.h
 --- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_dcs_reg.h	1970-01-01 01:00:00.000000000 +0100
-+++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_dcs_reg.h	2011-06-05 10:13:46.481993234 +0200
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_dcs_reg.h	2011-11-14 23:52:58.164789171 +0100
 @@ -0,0 +1,56 @@
 +#ifndef __SAA716x_DCS_REG_H
 +#define __SAA716x_DCS_REG_H
@@ -2119,7 +2241,7 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_dcs_reg.h v4l-dvb-p
 +#endif /* __SAA716x_DCS_REG_H */
 diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_dma.c v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_dma.c
 --- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_dma.c	1970-01-01 01:00:00.000000000 +0100
-+++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_dma.c	2011-06-05 10:13:46.481993234 +0200
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_dma.c	2011-11-14 23:52:58.164789171 +0100
 @@ -0,0 +1,306 @@
 +#include <linux/kernel.h>
 +#include <linux/pci.h>
@@ -2429,7 +2551,7 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_dma.c v4l-dvb-patch
 +}
 diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_dma.h v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_dma.h
 --- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_dma.h	1970-01-01 01:00:00.000000000 +0100
-+++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_dma.h	2011-06-05 10:13:46.481993234 +0200
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_dma.h	2011-11-14 23:52:58.164789171 +0100
 @@ -0,0 +1,38 @@
 +#ifndef __SAA716x_DMA_H
 +#define __SAA716x_DMA_H
@@ -2471,7 +2593,7 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_dma.h v4l-dvb-patch
 +#endif /* __SAA716x_DMA_H */
 diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_dma_reg.h v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_dma_reg.h
 --- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_dma_reg.h	1970-01-01 01:00:00.000000000 +0100
-+++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_dma_reg.h	2011-06-05 10:13:46.481993234 +0200
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_dma_reg.h	2011-11-14 23:52:58.164789171 +0100
 @@ -0,0 +1,200 @@
 +#ifndef __SAA716x_DMA_REG_H
 +#define __SAA716x_DMA_REG_H
@@ -2673,10 +2795,363 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_dma_reg.h v4l-dvb-p
 +#define MMU_PTA7_MSB(__ch)		PTA_BASE(__ch) + 0x3c
 +
 +#endif /* __SAA716x_DMA_REG_H */
+diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_ff_cmd.c v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_ff_cmd.c
+--- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_ff_cmd.c	1970-01-01 01:00:00.000000000 +0100
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_ff_cmd.c	2011-11-14 23:52:58.164789171 +0100
+@@ -0,0 +1,329 @@
++#include <linux/types.h>
++
++#include <linux/dvb/video.h>
++#include <linux/dvb/osd.h>
++
++#include "saa716x_phi_reg.h"
++
++#include "saa716x_phi.h"
++#include "saa716x_spi.h"
++#include "saa716x_priv.h"
++#include "saa716x_ff.h"
++#include "saa716x_ff_cmd.h"
++
++
++int sti7109_cmd_init(struct sti7109_dev *sti7109)
++{
++	mutex_init(&sti7109->cmd_lock);
++	mutex_init(&sti7109->osd_cmd_lock);
++	mutex_init(&sti7109->data_lock);
++
++	init_waitqueue_head(&sti7109->boot_finish_wq);
++	sti7109->boot_finished = 0;
++
++	init_waitqueue_head(&sti7109->cmd_ready_wq);
++	sti7109->cmd_ready = 0;
++
++	init_waitqueue_head(&sti7109->result_avail_wq);
++	sti7109->result_avail = 0;
++
++	init_waitqueue_head(&sti7109->osd_cmd_ready_wq);
++	sti7109->osd_cmd_ready = 0;
++	init_waitqueue_head(&sti7109->osd_result_avail_wq);
++	sti7109->osd_result_avail = 0;
++
++	sti7109->data_handle = 0;
++	init_waitqueue_head(&sti7109->data_ready_wq);
++	sti7109->data_ready = 0;
++	init_waitqueue_head(&sti7109->block_done_wq);
++	sti7109->block_done = 0;
++	return 0;
++}
++
++int sti7109_raw_cmd(struct sti7109_dev * sti7109, osd_raw_cmd_t * cmd)
++{
++	struct saa716x_dev * saa716x = sti7109->dev;
++	unsigned long timeout;
++
++	timeout = 1 * HZ;
++	timeout = wait_event_interruptible_timeout(sti7109->cmd_ready_wq,
++						   sti7109->cmd_ready == 1,
++						   timeout);
++
++	if (timeout == -ERESTARTSYS || sti7109->cmd_ready == 0) {
++		if (timeout == -ERESTARTSYS) {
++			/* a signal arrived */
++			dprintk(SAA716x_ERROR, 1, "cmd ERESTARTSYS");
++			return -ERESTARTSYS;
++		}
++		dprintk(SAA716x_ERROR, 1,
++			"timed out waiting for command ready");
++		return -EIO;
++	}
++
++	sti7109->cmd_ready = 0;
++	sti7109->result_avail = 0;
++	saa716x_phi_write(saa716x, ADDR_CMD_DATA, cmd->cmd_data, cmd->cmd_len);
++	SAA716x_EPWR(PHI_1, FPGA_ADDR_PHI_ISET, ISR_CMD_MASK);
++
++	if (cmd->result_len > 0) {
++		timeout = 1 * HZ;
++		timeout = wait_event_interruptible_timeout(
++				sti7109->result_avail_wq,
++				sti7109->result_avail == 1,
++				timeout);
++
++		if (timeout == -ERESTARTSYS || sti7109->result_avail == 0) {
++			cmd->result_len = 0;
++			if (timeout == -ERESTARTSYS) {
++				/* a signal arrived */
++				dprintk(SAA716x_ERROR, 1, "result ERESTARTSYS");
++				return -ERESTARTSYS;
++			}
++			dprintk(SAA716x_ERROR, 1,
++				"timed out waiting for command result");
++			return -EIO;
++		}
++
++		if (sti7109->result_len > 0) {
++			if (sti7109->result_len > cmd->result_len) {
++				memcpy(cmd->result_data, sti7109->result_data,
++					cmd->result_len);
++			} else {
++				memcpy(cmd->result_data, sti7109->result_data,
++					sti7109->result_len);
++				cmd->result_len = sti7109->result_len;
++			}
++		}
++	}
++
++	return 0;
++}
++
++int sti7109_raw_osd_cmd(struct sti7109_dev * sti7109, osd_raw_cmd_t * cmd)
++{
++	struct saa716x_dev * saa716x = sti7109->dev;
++	unsigned long timeout;
++
++	timeout = 1 * HZ;
++	timeout = wait_event_interruptible_timeout(sti7109->osd_cmd_ready_wq,
++						   sti7109->osd_cmd_ready == 1,
++						   timeout);
++
++	if (timeout == -ERESTARTSYS || sti7109->osd_cmd_ready == 0) {
++		if (timeout == -ERESTARTSYS) {
++			/* a signal arrived */
++			dprintk(SAA716x_ERROR, 1, "osd cmd ERESTARTSYS");
++			return -ERESTARTSYS;
++		}
++		dprintk(SAA716x_ERROR, 1,
++			"timed out waiting for osd command ready");
++		return -EIO;
++	}
++
++	sti7109->osd_cmd_ready = 0;
++	sti7109->osd_result_avail = 0;
++	saa716x_phi_write(saa716x, ADDR_OSD_CMD_DATA, cmd->cmd_data,
++			  cmd->cmd_len);
++	SAA716x_EPWR(PHI_1, FPGA_ADDR_PHI_ISET, ISR_OSD_CMD_MASK);
++
++	if (cmd->result_len > 0) {
++		timeout = 1 * HZ;
++		timeout = wait_event_interruptible_timeout(
++				sti7109->osd_result_avail_wq,
++				sti7109->osd_result_avail == 1,
++				timeout);
++
++		if (timeout == -ERESTARTSYS || sti7109->osd_result_avail == 0) {
++			cmd->result_len = 0;
++			if (timeout == -ERESTARTSYS) {
++				/* a signal arrived */
++				dprintk(SAA716x_ERROR, 1,
++					"osd result ERESTARTSYS");
++				return -ERESTARTSYS;
++			}
++			dprintk(SAA716x_ERROR, 1,
++				"timed out waiting for osd command result");
++			return -EIO;
++		}
++
++		if (sti7109->osd_result_len > 0) {
++			if (sti7109->osd_result_len > cmd->result_len) {
++				memcpy(cmd->result_data,
++					sti7109->osd_result_data,
++					cmd->result_len);
++			} else {
++				memcpy(cmd->result_data,
++					sti7109->osd_result_data,
++					sti7109->osd_result_len);
++				cmd->result_len = sti7109->osd_result_len;
++			}
++		}
++	}
++
++	return 0;
++}
++
++int sti7109_raw_data(struct sti7109_dev * sti7109, osd_raw_data_t * data)
++{
++	struct saa716x_dev * saa716x = sti7109->dev;
++	unsigned long timeout;
++	u16 blockSize;
++	u16 lastBlockSize;
++	u16 numBlocks;
++	u16 blockIndex;
++	u8 blockHeader[SIZE_BLOCK_HEADER];
++	u8 * blockPtr;
++	int activeBlock;
++
++	timeout = 1 * HZ;
++	timeout = wait_event_interruptible_timeout(sti7109->data_ready_wq,
++						   sti7109->data_ready == 1,
++						   timeout);
++
++	if (timeout == -ERESTARTSYS || sti7109->data_ready == 0) {
++		if (timeout == -ERESTARTSYS) {
++			/* a signal arrived */
++			dprintk(SAA716x_ERROR, 1, "data ERESTARTSYS");
++			return -ERESTARTSYS;
++		}
++		dprintk(SAA716x_ERROR, 1, "timed out waiting for data ready");
++		return -EIO;
++	}
++
++	sti7109->data_ready = 0;
++
++	/*
++	 * 8 bytes is the size of the block header. Block header structure is:
++	 * 16 bit - block index
++	 * 16 bit - number of blocks
++	 * 16 bit - current block data size
++	 * 16 bit - block handle. This is used to reference the data in the
++	 *          command that uses it.
++	 */
++	blockSize = (SIZE_BLOCK_DATA / 2) - SIZE_BLOCK_HEADER;
++	numBlocks = data->data_length / blockSize;
++	lastBlockSize = data->data_length % blockSize;
++	if (lastBlockSize > 0)
++		numBlocks++;
++
++	blockHeader[2] = (u8) (numBlocks >> 8);
++	blockHeader[3] = (u8) numBlocks;
++	blockHeader[6] = (u8) (sti7109->data_handle >> 8);
++	blockHeader[7] = (u8) sti7109->data_handle;
++	blockPtr = (u8 *) data->data_buffer;
++	activeBlock = 0;
++	for (blockIndex = 0; blockIndex < numBlocks; blockIndex++) {
++		u32 addr;
++
++		if (lastBlockSize && (blockIndex == (numBlocks - 1)))
++			blockSize = lastBlockSize;
++
++		blockHeader[0] = (uint8_t) (blockIndex >> 8);
++		blockHeader[1] = (uint8_t) blockIndex;
++		blockHeader[4] = (uint8_t) (blockSize >> 8);
++		blockHeader[5] = (uint8_t) blockSize;
++
++		addr = ADDR_BLOCK_DATA + activeBlock * (SIZE_BLOCK_DATA / 2);
++		saa716x_phi_write(saa716x, addr, blockHeader,
++				  SIZE_BLOCK_HEADER);
++		saa716x_phi_write(saa716x, addr + SIZE_BLOCK_HEADER, blockPtr,
++				  blockSize);
++		activeBlock = (activeBlock + 1) & 1;
++		if (blockIndex > 0) {
++			timeout = 1 * HZ;
++			timeout = wait_event_timeout(sti7109->block_done_wq,
++						     sti7109->block_done == 1,
++						     timeout);
++
++			if (sti7109->block_done == 0) {
++				dprintk(SAA716x_ERROR, 1,
++					"timed out waiting for block done");
++				return -EIO;
++			}
++		}
++		sti7109->block_done = 0;
++		SAA716x_EPWR(PHI_1, FPGA_ADDR_PHI_ISET, ISR_BLOCK_MASK);
++		blockPtr += blockSize;
++	}
++	timeout = 1 * HZ;
++	timeout = wait_event_timeout(sti7109->block_done_wq,
++				     sti7109->block_done == 1,
++				     timeout);
++
++	if (sti7109->block_done == 0) {
++		dprintk(SAA716x_ERROR, 1, "timed out waiting for block done");
++		return -EIO;
++	}
++	sti7109->block_done = 0;
++
++	data->data_handle = sti7109->data_handle;
++	sti7109->data_handle++;
++	return 0;
++}
++
++int sti7109_cmd_get_fw_version(struct sti7109_dev *sti7109, u32 *fw_version)
++{
++	osd_raw_cmd_t cmd;
++	u8 cmd_data[6];
++	u8 result_data[MAX_RESULT_LEN];
++	int ret_val = -EINVAL;
++
++	cmd_data[0] = 0x00;
++	cmd_data[1] = 0x04;
++	cmd_data[2] = 0x00;
++	cmd_data[3] = 0x00;
++	cmd_data[4] = 0x00;
++	cmd_data[5] = 0x00;
++	cmd.cmd_data = cmd_data;
++	cmd.cmd_len = sizeof(cmd_data);
++	cmd.result_data = result_data;
++	cmd.result_len = sizeof(result_data);
++
++	mutex_lock(&sti7109->cmd_lock);
++	ret_val = sti7109_raw_cmd(sti7109, &cmd);
++	mutex_unlock(&sti7109->cmd_lock);
++
++	if (ret_val == 0) {
++		*fw_version = (result_data[6] << 16)
++			    | (result_data[7] << 8)
++			    | result_data[8];
++	}
++
++	return ret_val;
++}
++
++int sti7109_cmd_get_video_format(struct sti7109_dev *sti7109, video_size_t *vs)
++{
++	osd_raw_cmd_t cmd;
++	u8 cmd_data[7];
++	u8 result_data[MAX_RESULT_LEN];
++	int ret_val = -EINVAL;
++
++	cmd_data[0] = 0x00;
++	cmd_data[1] = 0x05; /* command length */
++	cmd_data[2] = 0x00;
++	cmd_data[3] = 0x01; /* A/V decoder command group */
++	cmd_data[4] = 0x00;
++	cmd_data[5] = 0x10; /* get video format info command */
++	cmd_data[6] = 0x00; /* decoder index 0 */
++	cmd.cmd_data = cmd_data;
++	cmd.cmd_len = sizeof(cmd_data);
++	cmd.result_data = result_data;
++	cmd.result_len = sizeof(result_data);
++
++	mutex_lock(&sti7109->cmd_lock);
++	ret_val = sti7109_raw_cmd(sti7109, &cmd);
++	mutex_unlock(&sti7109->cmd_lock);
++
++	if (ret_val == 0) {
++		vs->w = (result_data[7] << 8)
++		      | result_data[8];
++		vs->h = (result_data[9] << 8)
++		      | result_data[10];
++		vs->aspect_ratio = result_data[11] >> 4;
++	}
++
++	return ret_val;
++}
++
+diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_ff_cmd.h v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_ff_cmd.h
+--- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_ff_cmd.h	1970-01-01 01:00:00.000000000 +0100
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_ff_cmd.h	2011-11-14 23:52:58.164789171 +0100
+@@ -0,0 +1,16 @@
++#ifndef __SAA716x_FF_CMD_H
++#define __SAA716x_FF_CMD_H
++
++extern int sti7109_cmd_init(struct sti7109_dev *sti7109);
++extern int sti7109_raw_cmd(struct sti7109_dev * sti7109,
++			   osd_raw_cmd_t * cmd);
++extern int sti7109_raw_osd_cmd(struct sti7109_dev * sti7109,
++			       osd_raw_cmd_t * cmd);
++extern int sti7109_raw_data(struct sti7109_dev * sti7109,
++			    osd_raw_data_t * data);
++extern int sti7109_cmd_get_fw_version(struct sti7109_dev *sti7109,
++				      u32 *fw_version);
++extern int sti7109_cmd_get_video_format(struct sti7109_dev *sti7109,
++					video_size_t *vs);
++
++#endif /* __SAA716x_FF_CMD_H */
 diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_ff.h v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_ff.h
 --- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_ff.h	1970-01-01 01:00:00.000000000 +0100
-+++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_ff.h	2011-06-05 10:13:46.481993234 +0200
-@@ -0,0 +1,148 @@
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_ff.h	2011-11-14 23:52:58.164789171 +0100
+@@ -0,0 +1,149 @@
 +#ifndef __SAA716x_FF_H
 +#define __SAA716x_FF_H
 +
@@ -2814,7 +3289,6 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_ff.h v4l-dvb-patche
 +	u64			audio_pts;
 +	u64			video_pts;
 +	u64			current_stc;
-+	u32			remote_event;
 +
 +	u32			int_count_enable;
 +	u32			total_int_count;
@@ -2822,12 +3296,277 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_ff.h v4l-dvb-patche
 +	u32			ext_int_total_count;
 +	u32			ext_int_source_count[16];
 +	u32			last_int_ticks;
++
++	u16			fpga_version;
 +};
 +
 +#endif /* __SAA716x_FF_H */
 diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_ff_ir.c v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_ff_ir.c
 --- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_ff_ir.c	1970-01-01 01:00:00.000000000 +0100
-+++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_ff_ir.c	2011-06-05 10:13:46.481993234 +0200
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_ff_ir.c	2011-11-14 23:52:58.164789171 +0100
+@@ -0,0 +1,259 @@
++/*
++ * Driver for the remote control of the TT6400 DVB-S2 card
++ *
++ * Copyright (C) 2010 Oliver Endriss <o.endriss@gmx.de>
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public License
++ * as published by the Free Software Foundation; either version 2
++ * of the License, or (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
++ * Or, point your browser to http://www.gnu.org/copyleft/gpl.html
++ *
++ */
++
++#include <linux/types.h>
++#include <linux/input.h>
++
++#include "saa716x_spi.h"
++#include "saa716x_priv.h"
++#include "saa716x_ff.h"
++
++
++/* infrared remote control */
++struct infrared {
++	u16			key_map[128];
++	struct input_dev	*input_dev;
++	char			input_phys[32];
++	struct timer_list	keyup_timer;
++	struct tasklet_struct	tasklet;
++	u32			command;
++	u32			device_mask;
++	u8			protocol;
++	u16			last_key;
++	u16			last_toggle;
++	bool			delay_timer_finished;
++};
++
++#define IR_RC5		0
++#define UP_TIMEOUT	(HZ*7/25)
++
++
++/* key-up timer */
++static void ir_emit_keyup(unsigned long parm)
++{
++	struct infrared *ir = (struct infrared *) parm;
++
++	if (!ir || !test_bit(ir->last_key, ir->input_dev->key))
++		return;
++
++	input_report_key(ir->input_dev, ir->last_key, 0);
++	input_sync(ir->input_dev);
++}
++
++
++/* tasklet */
++static void ir_emit_key(unsigned long parm)
++{
++	struct saa716x_dev *saa716x = (struct saa716x_dev *) parm;
++	struct infrared *ir = saa716x->ir_priv;
++	u32 ircom = ir->command;
++	u8 data;
++	u8 addr;
++	u16 toggle;
++	u16 keycode;
++
++	/* extract device address and data */
++	switch (ir->protocol) {
++	case IR_RC5: /* extended RC5: 5 bits device address, 7 bits data */
++		addr = (ircom >> 6) & 0x1f;
++		/* data bits 1..6 */
++		data = ircom & 0x3f;
++		/* data bit 7 (inverted) */
++		if (!(ircom & 0x1000))
++			data |= 0x40;
++		toggle = ircom & 0x0800;
++		break;
++
++	default:
++		printk(KERN_ERR "%s: invalid protocol %x\n",
++			__func__, ir->protocol);
++		return;
++	}
++
++	input_event(ir->input_dev, EV_MSC, MSC_RAW, (addr << 16) | data);
++	input_event(ir->input_dev, EV_MSC, MSC_SCAN, data);
++
++	keycode = ir->key_map[data];
++
++	dprintk(SAA716x_DEBUG, 0,
++		"%s: code %08x -> addr %i data 0x%02x -> keycode %i\n",
++		__func__, ircom, addr, data, keycode);
++
++	/* check device address */
++	if (!(ir->device_mask & (1 << addr)))
++		return;
++
++	if (!keycode) {
++		printk(KERN_WARNING "%s: code %08x -> addr %i data 0x%02x -> unknown key!\n",
++			__func__, ircom, addr, data);
++		return;
++	}
++
++	if (timer_pending(&ir->keyup_timer)) {
++		del_timer(&ir->keyup_timer);
++		if (ir->last_key != keycode || toggle != ir->last_toggle) {
++			ir->delay_timer_finished = false;
++			input_event(ir->input_dev, EV_KEY, ir->last_key, 0);
++			input_event(ir->input_dev, EV_KEY, keycode, 1);
++			input_sync(ir->input_dev);
++		} else if (ir->delay_timer_finished) {
++			input_event(ir->input_dev, EV_KEY, keycode, 2);
++			input_sync(ir->input_dev);
++		}
++	} else {
++		ir->delay_timer_finished = false;
++		input_event(ir->input_dev, EV_KEY, keycode, 1);
++		input_sync(ir->input_dev);
++	}
++
++	ir->last_key = keycode;
++	ir->last_toggle = toggle;
++
++	ir->keyup_timer.expires = jiffies + UP_TIMEOUT;
++	add_timer(&ir->keyup_timer);
++
++}
++
++
++/* register with input layer */
++static void ir_register_keys(struct infrared *ir)
++{
++	int i;
++
++	set_bit(EV_KEY, ir->input_dev->evbit);
++	set_bit(EV_REP, ir->input_dev->evbit);
++	set_bit(EV_MSC, ir->input_dev->evbit);
++
++	set_bit(MSC_RAW, ir->input_dev->mscbit);
++	set_bit(MSC_SCAN, ir->input_dev->mscbit);
++
++	memset(ir->input_dev->keybit, 0, sizeof(ir->input_dev->keybit));
++
++	for (i = 0; i < ARRAY_SIZE(ir->key_map); i++) {
++		if (ir->key_map[i] > KEY_MAX)
++			ir->key_map[i] = 0;
++		else if (ir->key_map[i] > KEY_RESERVED)
++			set_bit(ir->key_map[i], ir->input_dev->keybit);
++	}
++
++	ir->input_dev->keycode = ir->key_map;
++	ir->input_dev->keycodesize = sizeof(ir->key_map[0]);
++	ir->input_dev->keycodemax = ARRAY_SIZE(ir->key_map);
++}
++
++
++/* called by the input driver after rep[REP_DELAY] ms */
++static void ir_repeat_key(unsigned long parm)
++{
++	struct infrared *ir = (struct infrared *) parm;
++
++	ir->delay_timer_finished = true;
++}
++
++
++/* interrupt handler */
++void saa716x_ir_handler(struct saa716x_dev *saa716x, u32 ir_cmd)
++{
++	struct infrared *ir = saa716x->ir_priv;
++
++	if (!ir)
++		return;
++
++	ir->command = ir_cmd;
++	tasklet_schedule(&ir->tasklet);
++}
++
++
++int saa716x_ir_init(struct saa716x_dev *saa716x)
++{
++	struct input_dev *input_dev;
++	struct infrared *ir;
++	int rc;
++	int i;
++
++	if (!saa716x)
++		return -ENOMEM;
++
++	ir = kzalloc(sizeof(struct infrared), GFP_KERNEL);
++	if (!ir)
++		return -ENOMEM;
++
++	init_timer(&ir->keyup_timer);
++	ir->keyup_timer.function = ir_emit_keyup;
++	ir->keyup_timer.data = (unsigned long) ir;
++
++	input_dev = input_allocate_device();
++	if (!input_dev)
++		goto err;
++
++	ir->input_dev = input_dev;
++	input_dev->name = "TT6400 DVB IR receiver";
++	snprintf(ir->input_phys, sizeof(ir->input_phys),
++		"pci-%s/ir0", pci_name(saa716x->pdev));
++	input_dev->phys = ir->input_phys;
++	input_dev->id.bustype = BUS_PCI;
++	input_dev->id.version = 1;
++	input_dev->id.vendor = saa716x->pdev->subsystem_vendor;
++	input_dev->id.product = saa716x->pdev->subsystem_device;
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 22)
++	input_dev->dev.parent = &saa716x->pdev->dev;
++#else
++	input_dev->cdev.dev = &saa716x->pdev->dev;
++#endif
++	rc = input_register_device(input_dev);
++	if (rc)
++		goto err;
++
++	/* TODO: fix setup/keymap */
++	ir->protocol = IR_RC5;
++	ir->device_mask = 0xffffffff;
++	for (i = 0; i < ARRAY_SIZE(ir->key_map); i++)
++		ir->key_map[i] = i+1;
++	ir_register_keys(ir);
++
++	/* override repeat timer */
++	input_dev->timer.function = ir_repeat_key;
++	input_dev->timer.data = (unsigned long) ir;
++
++	tasklet_init(&ir->tasklet, ir_emit_key, (unsigned long) saa716x);
++	saa716x->ir_priv = ir;
++
++	return 0;
++
++err:
++	if (ir->input_dev)
++		input_free_device(ir->input_dev);
++	kfree(ir);
++	return -ENOMEM;
++}
++
++
++void saa716x_ir_exit(struct saa716x_dev *saa716x)
++{
++	struct infrared *ir = saa716x->ir_priv;
++
++	saa716x->ir_priv = NULL;
++	tasklet_kill(&ir->tasklet);
++	del_timer_sync(&ir->keyup_timer);
++	input_unregister_device(ir->input_dev);
++	kfree(ir);
++}
+diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_ff_ir.c.orig v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_ff_ir.c.orig
+--- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_ff_ir.c.orig	1970-01-01 01:00:00.000000000 +0100
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_ff_ir.c.orig	2011-11-14 23:29:06.472839710 +0100
 @@ -0,0 +1,259 @@
 +/*
 + * Driver for the remote control of the TT6400 DVB-S2 card
@@ -3090,8 +3829,1423 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_ff_ir.c v4l-dvb-pat
 +}
 diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_ff_main.c v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_ff_main.c
 --- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_ff_main.c	1970-01-01 01:00:00.000000000 +0100
-+++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_ff_main.c	2011-06-05 10:13:46.491993234 +0200
-@@ -0,0 +1,1690 @@
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_ff_main.c	2011-11-14 23:52:58.168789171 +0100
+@@ -0,0 +1,1411 @@
++#include <linux/module.h>
++#include <linux/moduleparam.h>
++#include <linux/kernel.h>
++#include <linux/pci.h>
++#include <linux/mutex.h>
++
++#include <asm/io.h>
++#include <asm/pgtable.h>
++#include <asm/page.h>
++#include <asm/byteorder.h>
++#include <linux/kmod.h>
++#include <linux/vmalloc.h>
++#include <linux/init.h>
++#include <linux/device.h>
++#include <linux/firmware.h>
++
++#include <linux/signal.h>
++#include <linux/sched.h>
++#include <linux/interrupt.h>
++
++#include <linux/i2c.h>
++
++#include <linux/dvb/video.h>
++#include <linux/dvb/audio.h>
++#include <linux/dvb/osd.h>
++
++#include "saa716x_mod.h"
++
++#include "saa716x_dma_reg.h"
++#include "saa716x_fgpi_reg.h"
++#include "saa716x_greg_reg.h"
++#include "saa716x_phi_reg.h"
++#include "saa716x_spi_reg.h"
++#include "saa716x_msi_reg.h"
++
++#include "saa716x_vip.h"
++#include "saa716x_aip.h"
++#include "saa716x_msi.h"
++#include "saa716x_adap.h"
++#include "saa716x_gpio.h"
++#include "saa716x_phi.h"
++#include "saa716x_rom.h"
++#include "saa716x_spi.h"
++#include "saa716x_priv.h"
++
++#include "saa716x_ff.h"
++#include "saa716x_ff_cmd.h"
++
++#include "stv6110x.h"
++#include "stv090x.h"
++#include "isl6423.h"
++
++unsigned int verbose;
++module_param(verbose, int, 0644);
++MODULE_PARM_DESC(verbose, "verbose startup messages, default is 1 (yes)");
++
++unsigned int int_type;
++module_param(int_type, int, 0644);
++MODULE_PARM_DESC(int_type, "force Interrupt Handler type: 0=INT-A, 1=MSI, 2=MSI-X. default INT-A mode");
++
++unsigned int int_count_enable;
++module_param(int_count_enable, int, 0644);
++MODULE_PARM_DESC(int_count_enable, "enable counting of interrupts");
++
++#define DRIVER_NAME	"SAA716x FF"
++
++static int saa716x_ff_fpga_init(struct saa716x_dev *saa716x)
++{
++	struct sti7109_dev *sti7109 = saa716x->priv;
++	int fpgaInit;
++	int fpgaDone;
++	int rounds;
++	int ret;
++	const struct firmware *fw;
++
++	/* request the FPGA firmware, this will block until someone uploads it */
++	ret = request_firmware(&fw, "dvb-ttpremium-fpga-01.fw", &saa716x->pdev->dev);
++	if (ret) {
++		if (ret == -ENOENT) {
++			printk(KERN_ERR "dvb-ttpremium: could not load FPGA firmware,"
++			       " file not found: dvb-ttpremium-fpga-01.fw\n");
++			printk(KERN_ERR "dvb-ttpremium: usually this should be in "
++			       "/usr/lib/hotplug/firmware or /lib/firmware\n");
++		} else
++			printk(KERN_ERR "dvb-ttpremium: cannot request firmware"
++			       " (error %i)\n", ret);
++		return -EINVAL;
++	}
++
++	/* set FPGA PROGRAMN high */
++	saa716x_gpio_write(saa716x, TT_PREMIUM_GPIO_FPGA_PROGRAMN, 1);
++	msleep(10);
++
++	/* set FPGA PROGRAMN low to set it into configuration mode */
++	saa716x_gpio_write(saa716x, TT_PREMIUM_GPIO_FPGA_PROGRAMN, 0);
++	msleep(10);
++
++	/* set FPGA PROGRAMN high to start configuration process */
++	saa716x_gpio_write(saa716x, TT_PREMIUM_GPIO_FPGA_PROGRAMN, 1);
++
++	rounds = 0;
++	fpgaInit = saa716x_gpio_read(saa716x, TT_PREMIUM_GPIO_FPGA_INITN);
++	while (fpgaInit == 0 && rounds < 5000) {
++		//msleep(1);
++		fpgaInit = saa716x_gpio_read(saa716x, TT_PREMIUM_GPIO_FPGA_INITN);
++		rounds++;
++	}
++	dprintk(SAA716x_INFO, 1, "SAA716x FF FPGA INITN=%d, rounds=%d",
++		fpgaInit, rounds);
++
++	SAA716x_EPWR(SPI, SPI_CLOCK_COUNTER, 0x08);
++	SAA716x_EPWR(SPI, SPI_CONTROL_REG, SPI_MODE_SELECT);
++
++	msleep(10);
++
++	fpgaDone = saa716x_gpio_read(saa716x, TT_PREMIUM_GPIO_FPGA_DONE);
++	dprintk(SAA716x_INFO, 1, "SAA716x FF FPGA DONE=%d", fpgaDone);
++	dprintk(SAA716x_INFO, 1, "SAA716x FF FPGA write bitstream");
++	saa716x_spi_write(saa716x, fw->data, fw->size);
++	dprintk(SAA716x_INFO, 1, "SAA716x FF FPGA write bitstream done");
++	fpgaDone = saa716x_gpio_read(saa716x, TT_PREMIUM_GPIO_FPGA_DONE);
++	dprintk(SAA716x_INFO, 1, "SAA716x FF FPGA DONE=%d", fpgaDone);
++
++	msleep(10);
++
++	release_firmware(fw);
++
++	if (!fpgaDone)
++		return -EINVAL;
++
++	sti7109->fpga_version = SAA716x_EPRD(PHI_1, FPGA_ADDR_VERSION);
++	printk(KERN_INFO "SAA716x FF FPGA version %X.%02X\n",
++		sti7109->fpga_version >> 8, sti7109->fpga_version & 0xFF);
++
++	return 0;
++}
++
++static int saa716x_ff_st7109_init(struct saa716x_dev *saa716x)
++{
++	int i;
++	int length;
++	u32 requestedBlock;
++	u32 writtenBlock;
++	u32 numBlocks;
++	u32 blockSize;
++	u32 lastBlockSize;
++	u64 startTime;
++	u64 currentTime;
++	u64 waitTime;
++	int ret;
++	const struct firmware *fw;
++	u32 loaderVersion;
++
++	/* request the st7109 loader, this will block until someone uploads it */
++	ret = request_firmware(&fw, "dvb-ttpremium-loader-01.fw", &saa716x->pdev->dev);
++	if (ret) {
++		if (ret == -ENOENT) {
++			printk(KERN_ERR "dvb-ttpremium: could not load ST7109 loader,"
++			       " file not found: dvb-ttpremium-loader-01.fw\n");
++			printk(KERN_ERR "dvb-ttpremium: usually this should be in "
++			       "/usr/lib/hotplug/firmware or /lib/firmware\n");
++		} else
++			printk(KERN_ERR "dvb-ttpremium: cannot request firmware"
++			       " (error %i)\n", ret);
++		return -EINVAL;
++	}
++	loaderVersion = (fw->data[0x1385] << 8) | fw->data[0x1384];
++	printk(KERN_INFO "SAA716x FF loader version %X.%02X\n",
++		loaderVersion >> 8, loaderVersion & 0xFF);
++
++	saa716x_phi_write(saa716x, 0, fw->data, fw->size);
++	msleep(10);
++
++	release_firmware(fw);
++
++	/* take ST out of reset */
++	saa716x_gpio_write(saa716x, TT_PREMIUM_GPIO_RESET_BACKEND, 1);
++
++	startTime = jiffies;
++	waitTime = 0;
++	do {
++		requestedBlock = SAA716x_EPRD(PHI_1, 0x3ffc);
++		if (requestedBlock == 1)
++			break;
++
++		currentTime = jiffies;
++		waitTime = currentTime - startTime;
++	} while (waitTime < (1 * HZ));
++
++	if (waitTime >= 1 * HZ) {
++		dprintk(SAA716x_ERROR, 1, "STi7109 seems to be DEAD!");
++		return -1;
++	}
++	dprintk(SAA716x_INFO, 1, "STi7109 ready after %llu ticks", waitTime);
++
++	/* request the st7109 firmware, this will block until someone uploads it */
++	ret = request_firmware(&fw, "dvb-ttpremium-st7109-01.fw", &saa716x->pdev->dev);
++	if (ret) {
++		if (ret == -ENOENT) {
++			printk(KERN_ERR "dvb-ttpremium: could not load ST7109 firmware,"
++			       " file not found: dvb-ttpremium-st7109-01.fw\n");
++			printk(KERN_ERR "dvb-ttpremium: usually this should be in "
++			       "/usr/lib/hotplug/firmware or /lib/firmware\n");
++		} else
++			printk(KERN_ERR "dvb-ttpremium: cannot request firmware"
++			       " (error %i)\n", ret);
++		return -EINVAL;
++	}
++
++	dprintk(SAA716x_INFO, 1, "SAA716x FF download ST7109 firmware");
++	writtenBlock = 0;
++	blockSize = 0x3c00;
++	length = fw->size;
++	numBlocks = length / blockSize;
++	lastBlockSize = length % blockSize;
++	for (i = 0; i < length; i += blockSize) {
++		writtenBlock++;
++		/* write one block (last may differ from blockSize) */
++		if (lastBlockSize && writtenBlock == (numBlocks + 1))
++			saa716x_phi_write(saa716x, 0, &fw->data[i], lastBlockSize);
++		else
++			saa716x_phi_write(saa716x, 0, &fw->data[i], blockSize);
++
++		SAA716x_EPWR(PHI_1, 0x3ff8, writtenBlock);
++		startTime = jiffies;
++		waitTime = 0;
++		do {
++			requestedBlock = SAA716x_EPRD(PHI_1, 0x3ffc);
++			if (requestedBlock == (writtenBlock + 1))
++				break;
++
++			currentTime = jiffies;
++			waitTime = currentTime - startTime;
++		} while (waitTime < (1 * HZ));
++
++		if (waitTime >= 1 * HZ) {
++			dprintk(SAA716x_ERROR, 1, "STi7109 seems to be DEAD!");
++			release_firmware(fw);
++			return -1;
++		}
++	}
++
++	/* disable frontend support through ST firmware */
++	SAA716x_EPWR(PHI_1, 0x3ff4, 1);
++
++	/* indicate end of transfer */
++	writtenBlock++;
++	writtenBlock |= 0x80000000;
++	SAA716x_EPWR(PHI_1, 0x3ff8, writtenBlock);
++
++	dprintk(SAA716x_INFO, 1, "SAA716x FF download ST7109 firmware done");
++
++	release_firmware(fw);
++
++	return 0;
++}
++
++#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 36) && !defined(EXPERIMENTAL_TREE)
++static int dvb_osd_ioctl(struct inode *inode, struct file *file,
++#else
++static int dvb_osd_ioctl(struct file *file,
++#endif
++			 unsigned int cmd, void *parg)
++{
++	struct dvb_device *dvbdev	= file->private_data;
++	struct sti7109_dev *sti7109	= dvbdev->priv;
++	int ret_val = -EINVAL;
++
++	if (cmd == OSD_RAW_CMD) {
++		osd_raw_cmd_t * pcmd = (osd_raw_cmd_t *) parg;
++		u8 * pdata = (u8 *) pcmd->cmd_data;
++		if (pdata[3] == 4) {
++			mutex_lock(&sti7109->osd_cmd_lock);
++			ret_val = sti7109_raw_osd_cmd(sti7109, (osd_raw_cmd_t *) parg);
++			mutex_unlock(&sti7109->osd_cmd_lock);
++		}
++		else {
++			mutex_lock(&sti7109->cmd_lock);
++			ret_val = sti7109_raw_cmd(sti7109, (osd_raw_cmd_t *) parg);
++			mutex_unlock(&sti7109->cmd_lock);
++		}
++	}
++	else if (cmd == OSD_RAW_DATA) {
++		mutex_lock(&sti7109->data_lock);
++		ret_val = sti7109_raw_data(sti7109, (osd_raw_data_t *) parg);
++		mutex_unlock(&sti7109->data_lock);
++	}
++
++	return ret_val;
++}
++
++
++static struct file_operations dvb_osd_fops = {
++	.owner		= THIS_MODULE,
++#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 36) && !defined(EXPERIMENTAL_TREE)
++	.ioctl		= dvb_generic_ioctl,
++#else
++	.unlocked_ioctl	= dvb_generic_ioctl,
++#endif
++	.open		= dvb_generic_open,
++	.release	= dvb_generic_release,
++};
++
++static struct dvb_device dvbdev_osd = {
++	.priv		= NULL,
++	.users		= 2,
++	.writers	= 2,
++	.fops		= &dvb_osd_fops,
++	.kernel_ioctl	= dvb_osd_ioctl,
++};
++
++static int saa716x_ff_osd_exit(struct saa716x_dev *saa716x)
++{
++	struct sti7109_dev *sti7109 = saa716x->priv;
++
++	dvb_unregister_device(sti7109->osd_dev);
++	return 0;
++}
++
++static int saa716x_ff_osd_init(struct saa716x_dev *saa716x)
++{
++	struct saa716x_adapter *saa716x_adap	= saa716x->saa716x_adap;
++	struct sti7109_dev *sti7109		= saa716x->priv;
++
++	dvb_register_device(&saa716x_adap->dvb_adapter,
++			    &sti7109->osd_dev,
++			    &dvbdev_osd,
++			    sti7109,
++			    DVB_DEVICE_OSD);
++
++	return 0;
++}
++
++#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 36) && !defined(EXPERIMENTAL_TREE)
++static int dvb_audio_ioctl(struct inode *inode, struct file *file,
++#else
++static int dvb_audio_ioctl(struct file *file,
++#endif
++			   unsigned int cmd, void *parg)
++{
++	struct dvb_device *dvbdev	= file->private_data;
++	struct sti7109_dev *sti7109	= dvbdev->priv;
++	//struct saa716x_dev *saa716x	= sti7109->dev;
++	int ret = 0;
++
++	switch (cmd) {
++	case AUDIO_GET_PTS:
++	{
++		*(u64 *)parg = sti7109->audio_pts;
++		break;
++	}
++	default:
++		ret = -ENOIOCTLCMD;
++		break;
++	}
++	return ret;
++}
++
++static struct file_operations dvb_audio_fops = {
++	.owner		= THIS_MODULE,
++#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 36) && !defined(EXPERIMENTAL_TREE)
++	.ioctl		= dvb_generic_ioctl,
++#else
++	.unlocked_ioctl	= dvb_generic_ioctl,
++#endif
++	.open		= dvb_generic_open,
++	.release	= dvb_generic_release,
++};
++
++static struct dvb_device dvbdev_audio = {
++	.priv		= NULL,
++	.users		= 1,
++	.writers	= 1,
++	.fops		= &dvb_audio_fops,
++	.kernel_ioctl	= dvb_audio_ioctl,
++};
++
++static int saa716x_ff_audio_exit(struct saa716x_dev *saa716x)
++{
++	struct sti7109_dev *sti7109 = saa716x->priv;
++
++	dvb_unregister_device(sti7109->audio_dev);
++	return 0;
++}
++
++static int saa716x_ff_audio_init(struct saa716x_dev *saa716x)
++{
++	struct saa716x_adapter *saa716x_adap	= saa716x->saa716x_adap;
++	struct sti7109_dev *sti7109		= saa716x->priv;
++
++	dvb_register_device(&saa716x_adap->dvb_adapter,
++			    &sti7109->audio_dev,
++			    &dvbdev_audio,
++			    sti7109,
++			    DVB_DEVICE_AUDIO);
++
++	return 0;
++}
++
++static void fifo_worker(unsigned long data)
++{
++	struct saa716x_dev *saa716x = (struct saa716x_dev *) data;
++	struct sti7109_dev *sti7109 = saa716x->priv;
++	u32 fifoCtrl;
++	u32 fifoStat;
++	u16 fifoSize;
++	u16 fifoUsage;
++	u16 fifoFree;
++	int len;
++
++	fifoCtrl = SAA716x_EPRD(PHI_1, FPGA_ADDR_FIFO_CTRL);
++	fifoStat = SAA716x_EPRD(PHI_1, FPGA_ADDR_FIFO_STAT);
++	fifoSize = (u16) (fifoStat >> 16);
++	fifoUsage = (u16) fifoStat;
++	fifoFree = fifoSize - fifoUsage;
++	spin_lock(&sti7109->tsout.lock);
++	len = dvb_ringbuffer_avail(&sti7109->tsout);
++	if (len > fifoFree)
++		len = fifoFree;
++	if (len >= TS_SIZE)
++	{
++		while (len >= TS_SIZE)
++		{
++			dvb_ringbuffer_read(&sti7109->tsout, sti7109->tsbuf, (size_t) TS_SIZE);
++			saa716x_phi_write_fifo(saa716x, sti7109->tsbuf, TS_SIZE);
++			len -= TS_SIZE;
++		}
++		wake_up(&sti7109->tsout.queue);
++		fifoCtrl |= 0x4;
++		SAA716x_EPWR(PHI_1, FPGA_ADDR_FIFO_CTRL, fifoCtrl);
++	}
++	spin_unlock(&sti7109->tsout.lock);
++}
++
++#define FREE_COND_TS (dvb_ringbuffer_free(&sti7109->tsout) >= TS_SIZE)
++
++static ssize_t dvb_video_write(struct file *file, const char __user *buf,
++			       size_t count, loff_t *ppos)
++{
++	struct dvb_device *dvbdev	= file->private_data;
++	struct sti7109_dev *sti7109	= dvbdev->priv;
++	struct saa716x_dev *saa716x	= sti7109->dev;
++	unsigned long todo = count;
++
++	if ((file->f_flags & O_ACCMODE) == O_RDONLY)
++		return -EPERM;
++/*
++	if (av7110->videostate.stream_source != VIDEO_SOURCE_MEMORY)
++		return -EPERM;
++*/
++	if ((file->f_flags & O_NONBLOCK) && !FREE_COND_TS)
++		return -EWOULDBLOCK;
++
++	while (todo >= TS_SIZE) {
++		if (!FREE_COND_TS) {
++			if (file->f_flags & O_NONBLOCK)
++				break;
++			if (wait_event_interruptible(sti7109->tsout.queue, FREE_COND_TS))
++				break;
++		}
++		dvb_ringbuffer_write(&sti7109->tsout, buf, TS_SIZE);
++		todo -= TS_SIZE;
++		buf += TS_SIZE;
++	}
++
++	if (count > todo) {
++		u32 fifoCtrl;
++
++		fifoCtrl = SAA716x_EPRD(PHI_1, FPGA_ADDR_FIFO_CTRL);
++		fifoCtrl |= 0x4;
++		SAA716x_EPWR(PHI_1, FPGA_ADDR_FIFO_CTRL, fifoCtrl);
++	}
++
++	return count - todo;
++}
++
++static unsigned int dvb_video_poll(struct file *file, poll_table *wait)
++{
++	struct dvb_device *dvbdev	= file->private_data;
++	struct sti7109_dev *sti7109	= dvbdev->priv;
++	unsigned int mask = 0;
++
++	if ((file->f_flags & O_ACCMODE) != O_RDONLY)
++		poll_wait(file, &sti7109->tsout.queue, wait);
++
++	if ((file->f_flags & O_ACCMODE) != O_RDONLY) {
++		if (1/*sti7109->playing*/) {
++			if (FREE_COND_TS)
++				mask |= (POLLOUT | POLLWRNORM);
++		} else /* if not playing: may play if asked for */
++			mask |= (POLLOUT | POLLWRNORM);
++	}
++
++	return mask;
++}
++
++#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 36) && !defined(EXPERIMENTAL_TREE)
++static int dvb_video_ioctl(struct inode *inode, struct file *file,
++#else
++static int dvb_video_ioctl(struct file *file,
++#endif
++			   unsigned int cmd, void *parg)
++{
++	struct dvb_device *dvbdev	= file->private_data;
++	struct sti7109_dev *sti7109	= dvbdev->priv;
++	struct saa716x_dev *saa716x	= sti7109->dev;
++	int ret = 0;
++
++	switch (cmd) {
++	case VIDEO_SELECT_SOURCE:
++	{
++		video_stream_source_t stream_source;
++
++		stream_source = (video_stream_source_t) parg;
++		if (stream_source == VIDEO_SOURCE_DEMUX) {
++			/* stop and reset FIFO 1 */
++			SAA716x_EPWR(PHI_1, FPGA_ADDR_FIFO_CTRL, 1);
++		}
++		else {
++			dvb_ringbuffer_flush_spinlock_wakeup(&sti7109->tsout);
++			/* reset FIFO 1 */
++			SAA716x_EPWR(PHI_1, FPGA_ADDR_FIFO_CTRL, 1);
++			/* start FIFO 1 */
++			SAA716x_EPWR(PHI_1, FPGA_ADDR_FIFO_CTRL, 2);
++		}
++		break;
++	}
++	case VIDEO_CLEAR_BUFFER:
++	{
++		dvb_ringbuffer_flush_spinlock_wakeup(&sti7109->tsout);
++		break;
++	}
++	case VIDEO_GET_PTS:
++	{
++		*(u64 *)parg = sti7109->video_pts;
++		break;
++	}
++	case VIDEO_GET_SIZE:
++	{
++		ret = sti7109_cmd_get_video_format(sti7109, (video_size_t *) parg);
++		break;
++	}
++	default:
++		ret = -ENOIOCTLCMD;
++		break;
++	}
++	return ret;
++}
++
++static struct file_operations dvb_video_fops = {
++	.owner		= THIS_MODULE,
++	.write		= dvb_video_write,
++#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 36) && !defined(EXPERIMENTAL_TREE)
++	.ioctl		= dvb_generic_ioctl,
++#else
++	.unlocked_ioctl	= dvb_generic_ioctl,
++#endif
++	.open		= dvb_generic_open,
++	.release	= dvb_generic_release,
++	.poll		= dvb_video_poll,
++};
++
++static struct dvb_device dvbdev_video = {
++	.priv		= NULL,
++	.users		= 1,
++	.writers	= 1,
++	.fops		= &dvb_video_fops,
++	.kernel_ioctl	= dvb_video_ioctl,
++};
++
++static int saa716x_ff_video_exit(struct saa716x_dev *saa716x)
++{
++	struct sti7109_dev *sti7109 = saa716x->priv;
++
++	tasklet_kill(&sti7109->fifo_tasklet);
++	dvb_unregister_device(sti7109->video_dev);
++	return 0;
++}
++
++static int saa716x_ff_video_init(struct saa716x_dev *saa716x)
++{
++	struct saa716x_adapter *saa716x_adap	= saa716x->saa716x_adap;
++	struct sti7109_dev *sti7109		= saa716x->priv;
++
++	dvb_ringbuffer_init(&sti7109->tsout, sti7109->iobuf, TSOUT_LEN);
++	sti7109->tsbuf = (u8 *) (sti7109->iobuf + TSOUT_LEN);
++
++	dvb_register_device(&saa716x_adap->dvb_adapter,
++			    &sti7109->video_dev,
++			    &dvbdev_video,
++			    sti7109,
++			    DVB_DEVICE_VIDEO);
++
++	tasklet_init(&sti7109->fifo_tasklet, fifo_worker,
++		     (unsigned long)saa716x);
++
++	return 0;
++}
++
++static int __devinit saa716x_ff_pci_probe(struct pci_dev *pdev, const struct pci_device_id *pci_id)
++{
++	struct saa716x_dev *saa716x;
++	struct sti7109_dev *sti7109;
++	int err = 0;
++	u32 value;
++	unsigned long timeout;
++	u32 fw_version;
++
++	saa716x = kzalloc(sizeof (struct saa716x_dev), GFP_KERNEL);
++	if (saa716x == NULL) {
++		printk(KERN_ERR "saa716x_budget_pci_probe ERROR: out of memory\n");
++		err = -ENOMEM;
++		goto fail0;
++	}
++
++	saa716x->verbose	= verbose;
++	saa716x->int_type	= int_type;
++	saa716x->pdev		= pdev;
++	saa716x->config		= (struct saa716x_config *) pci_id->driver_data;
++
++	err = saa716x_pci_init(saa716x);
++	if (err) {
++		dprintk(SAA716x_ERROR, 1, "SAA716x PCI Initialization failed");
++		goto fail1;
++	}
++
++	err = saa716x_cgu_init(saa716x);
++	if (err) {
++		dprintk(SAA716x_ERROR, 1, "SAA716x CGU Init failed");
++		goto fail1;
++	}
++
++	err = saa716x_core_boot(saa716x);
++	if (err) {
++		dprintk(SAA716x_ERROR, 1, "SAA716x Core Boot failed");
++		goto fail2;
++	}
++	dprintk(SAA716x_DEBUG, 1, "SAA716x Core Boot Success");
++
++	err = saa716x_msi_init(saa716x);
++	if (err) {
++		dprintk(SAA716x_ERROR, 1, "SAA716x MSI Init failed");
++		goto fail2;
++	}
++
++	err = saa716x_jetpack_init(saa716x);
++	if (err) {
++		dprintk(SAA716x_ERROR, 1, "SAA716x Jetpack core initialization failed");
++		goto fail1;
++	}
++
++	err = saa716x_i2c_init(saa716x);
++	if (err) {
++		dprintk(SAA716x_ERROR, 1, "SAA716x I2C Initialization failed");
++		goto fail3;
++	}
++
++	err = saa716x_phi_init(saa716x);
++	if (err) {
++		dprintk(SAA716x_ERROR, 1, "SAA716x PHI Initialization failed");
++		goto fail3;
++	}
++
++	saa716x_gpio_init(saa716x);
++
++	/* prepare the sti7109 device struct */
++	sti7109 = kzalloc(sizeof(struct sti7109_dev), GFP_KERNEL);
++	if (!sti7109) {
++		dprintk(SAA716x_ERROR, 1, "SAA716x: out of memory");
++		goto fail3;
++	}
++
++	sti7109->dev = saa716x;
++
++	sti7109->iobuf = vmalloc(TSOUT_LEN + TSBUF_LEN);
++	if (!sti7109->iobuf)
++		goto fail4;
++
++	sti7109_cmd_init(sti7109);
++
++	sti7109->int_count_enable = int_count_enable;
++	sti7109->total_int_count = 0;
++	memset(sti7109->fgpi_int_count, 0, sizeof(sti7109->fgpi_int_count));
++	sti7109->ext_int_total_count = 0;
++	memset(sti7109->ext_int_source_count, 0, sizeof(sti7109->ext_int_source_count));
++	sti7109->last_int_ticks = jiffies;
++
++	saa716x->priv = sti7109;
++
++	saa716x_gpio_set_output(saa716x, TT_PREMIUM_GPIO_POWER_ENABLE);
++	saa716x_gpio_set_output(saa716x, TT_PREMIUM_GPIO_RESET_BACKEND);
++	saa716x_gpio_set_output(saa716x, TT_PREMIUM_GPIO_FPGA_CS0);
++	saa716x_gpio_set_mode(saa716x, TT_PREMIUM_GPIO_FPGA_CS0, 1);
++	saa716x_gpio_set_output(saa716x, TT_PREMIUM_GPIO_FPGA_CS1);
++	saa716x_gpio_set_mode(saa716x, TT_PREMIUM_GPIO_FPGA_CS1, 1);
++	saa716x_gpio_set_output(saa716x, TT_PREMIUM_GPIO_FPGA_PROGRAMN);
++	saa716x_gpio_set_input(saa716x, TT_PREMIUM_GPIO_FPGA_DONE);
++	saa716x_gpio_set_input(saa716x, TT_PREMIUM_GPIO_FPGA_INITN);
++
++	/* hold ST in reset */
++	saa716x_gpio_write(saa716x, TT_PREMIUM_GPIO_RESET_BACKEND, 0);
++
++	/* enable board power */
++	saa716x_gpio_write(saa716x, TT_PREMIUM_GPIO_POWER_ENABLE, 1);
++	msleep(100);
++
++	err = saa716x_ff_fpga_init(saa716x);
++	if (err) {
++		dprintk(SAA716x_ERROR, 1, "SAA716x FF FPGA Initialization failed");
++		goto fail5;
++	}
++
++	/* configure TS muxer */
++	if (sti7109->fpga_version < 0x110) {
++		/* select FIFO 1 for TS mux 3 */
++		SAA716x_EPWR(PHI_1, FPGA_ADDR_TSR_MUX3, 4);
++	} else {
++		/* select FIFO 1 for TS mux 3 */
++		SAA716x_EPWR(PHI_1, FPGA_ADDR_TSR_MUX3, 1);
++	}
++
++	/* enable interrupts from ST7109 -> PC */
++	SAA716x_EPWR(PHI_1, FPGA_ADDR_EMI_ICTRL, 0x3);
++
++	value = SAA716x_EPRD(MSI, MSI_CONFIG33);
++	value &= 0xFCFFFFFF;
++	value |= MSI_INT_POL_EDGE_FALL;
++	SAA716x_EPWR(MSI, MSI_CONFIG33, value);
++	SAA716x_EPWR(MSI, MSI_INT_ENA_SET_H, MSI_INT_EXTINT_0);
++
++	/* enable tuner reset */
++	SAA716x_EPWR(PHI_1, FPGA_ADDR_PIO_CTRL, 0);
++	msleep(50);
++	/* disable tuner reset */
++	SAA716x_EPWR(PHI_1, FPGA_ADDR_PIO_CTRL, 1);
++
++	err = saa716x_ff_st7109_init(saa716x);
++	if (err) {
++		dprintk(SAA716x_ERROR, 1, "SAA716x FF STi7109 initialization failed");
++		goto fail5;
++	}
++
++	err = saa716x_dump_eeprom(saa716x);
++	if (err) {
++		dprintk(SAA716x_ERROR, 1, "SAA716x EEPROM dump failed");
++	}
++#if 0
++	err = saa716x_eeprom_data(saa716x);
++	if (err) {
++		dprintk(SAA716x_ERROR, 1, "SAA716x EEPROM dump failed");
++	}
++#endif
++
++	/* enable FGPI2 and FGPI3 for TS inputs */
++	SAA716x_EPWR(GREG, GREG_VI_CTRL, 0x0689F04);
++	SAA716x_EPWR(GREG, GREG_FGPI_CTRL, 0x280);
++
++	err = saa716x_dvb_init(saa716x);
++	if (err) {
++		dprintk(SAA716x_ERROR, 1, "SAA716x DVB initialization failed");
++		goto fail6;
++	}
++
++	/* wait a maximum of 10 seconds for the STi7109 to boot */
++	timeout = 10 * HZ;
++	timeout = wait_event_interruptible_timeout(sti7109->boot_finish_wq,
++						   sti7109->boot_finished == 1,
++						   timeout);
++
++	if (timeout == -ERESTARTSYS || sti7109->boot_finished == 0) {
++		if (timeout == -ERESTARTSYS) {
++			/* a signal arrived */
++			goto fail6;
++		}
++		dprintk(SAA716x_ERROR, 1, "timed out waiting for boot finish");
++		err = -1;
++		goto fail6;
++	}
++	dprintk(SAA716x_INFO, 1, "STi7109 finished booting");
++
++	err = saa716x_ff_video_init(saa716x);
++	if (err) {
++		dprintk(SAA716x_ERROR, 1, "SAA716x FF VIDEO initialization failed");
++		goto fail7;
++	}
++
++	err = saa716x_ff_audio_init(saa716x);
++	if (err) {
++		dprintk(SAA716x_ERROR, 1, "SAA716x FF AUDIO initialization failed");
++		goto fail8;
++	}
++
++	err = saa716x_ff_osd_init(saa716x);
++	if (err) {
++		dprintk(SAA716x_ERROR, 1, "SAA716x FF OSD initialization failed");
++		goto fail9;
++	}
++
++	err = sti7109_cmd_get_fw_version(sti7109, &fw_version);
++	if (!err) {
++		printk(KERN_INFO "SAA716x FF firmware version %X.%X.%X\n",
++			(fw_version >> 16) & 0xFF, (fw_version >> 8) & 0xFF,
++			fw_version & 0xFF);
++	}
++
++	err = saa716x_ir_init(saa716x);
++	if (err)
++		goto fail9;
++
++	return 0;
++
++fail9:
++	saa716x_ff_osd_exit(saa716x);
++fail8:
++	saa716x_ff_audio_exit(saa716x);
++fail7:
++	saa716x_ff_video_exit(saa716x);
++fail6:
++	saa716x_dvb_exit(saa716x);
++fail5:
++	SAA716x_EPWR(MSI, MSI_INT_ENA_CLR_H, MSI_INT_EXTINT_0);
++
++	/* disable board power */
++	saa716x_gpio_write(saa716x, TT_PREMIUM_GPIO_POWER_ENABLE, 0);
++
++	vfree(sti7109->iobuf);
++fail4:
++	kfree(sti7109);
++fail3:
++	saa716x_i2c_exit(saa716x);
++fail2:
++	saa716x_pci_exit(saa716x);
++fail1:
++	kfree(saa716x);
++fail0:
++	return err;
++}
++
++static void __devexit saa716x_ff_pci_remove(struct pci_dev *pdev)
++{
++	struct saa716x_dev *saa716x = pci_get_drvdata(pdev);
++	struct sti7109_dev *sti7109 = saa716x->priv;
++
++	saa716x_ir_exit(saa716x);
++
++	saa716x_ff_osd_exit(saa716x);
++
++	saa716x_ff_audio_exit(saa716x);
++
++	saa716x_ff_video_exit(saa716x);
++
++	saa716x_dvb_exit(saa716x);
++
++	SAA716x_EPWR(MSI, MSI_INT_ENA_CLR_H, MSI_INT_EXTINT_0);
++
++	/* disable board power */
++	saa716x_gpio_write(saa716x, TT_PREMIUM_GPIO_POWER_ENABLE, 0);
++
++	saa716x->priv = NULL;
++	kfree(sti7109);
++
++	saa716x_i2c_exit(saa716x);
++	saa716x_pci_exit(saa716x);
++	kfree(saa716x);
++}
++
++static void demux_worker(unsigned long data)
++{
++	struct saa716x_fgpi_stream_port *fgpi_entry = (struct saa716x_fgpi_stream_port *)data;
++	struct saa716x_dev *saa716x = fgpi_entry->saa716x;
++	struct dvb_demux *demux;
++	u32 fgpi_index;
++	u32 i;
++	u32 write_index;
++
++	fgpi_index = fgpi_entry->dma_channel - 6;
++	demux = NULL;
++	for (i = 0; i < saa716x->config->adapters; i++) {
++		if (saa716x->config->adap_config[i].ts_port == fgpi_index) {
++			demux = &saa716x->saa716x_adap[i].demux;
++			break;
++		}
++	}
++	if (demux == NULL) {
++		printk(KERN_ERR "%s: unexpected channel %u\n",
++		       __func__, fgpi_entry->dma_channel);
++		return;
++	}
++
++	write_index = saa716x_fgpi_get_write_index(saa716x, fgpi_index);
++	if (write_index < 0)
++		return;
++
++	dprintk(SAA716x_DEBUG, 1, "dma buffer = %d", write_index);
++
++	if (write_index == fgpi_entry->read_index) {
++		printk(KERN_DEBUG "%s: called but nothing to do\n", __func__);
++		return;
++	}
++
++	do {
++		u8 *data = (u8 *)fgpi_entry->dma_buf[fgpi_entry->read_index].mem_virt;
++
++		pci_dma_sync_sg_for_cpu(saa716x->pdev,
++			fgpi_entry->dma_buf[fgpi_entry->read_index].sg_list,
++			fgpi_entry->dma_buf[fgpi_entry->read_index].list_len,
++			PCI_DMA_FROMDEVICE);
++
++		dvb_dmx_swfilter(demux, data, 348 * 188);
++
++		fgpi_entry->read_index = (fgpi_entry->read_index + 1) & 7;
++	} while (write_index != fgpi_entry->read_index);
++}
++
++static irqreturn_t saa716x_ff_pci_irq(int irq, void *dev_id)
++{
++	struct saa716x_dev *saa716x	= (struct saa716x_dev *) dev_id;
++	struct sti7109_dev *sti7109;
++	u32 msiStatusL;
++	u32 msiStatusH;
++	u32 phiISR;
++
++	if (unlikely(saa716x == NULL)) {
++		printk("%s: saa716x=NULL", __func__);
++		return IRQ_NONE;
++	}
++	sti7109 = saa716x->priv;
++	if (unlikely(sti7109 == NULL)) {
++		printk("%s: sti7109=NULL", __func__);
++		return IRQ_NONE;
++	}
++	if (sti7109->int_count_enable)
++		sti7109->total_int_count++;
++#if 0
++	dprintk(SAA716x_DEBUG, 1, "VI STAT 0=<%02x> 1=<%02x>, CTL 1=<%02x> 2=<%02x>",
++		SAA716x_EPRD(VI0, INT_STATUS),
++		SAA716x_EPRD(VI1, INT_STATUS),
++		SAA716x_EPRD(VI0, INT_ENABLE),
++		SAA716x_EPRD(VI1, INT_ENABLE));
++
++	dprintk(SAA716x_DEBUG, 1, "FGPI STAT 0=<%02x> 1=<%02x>, CTL 1=<%02x> 2=<%02x>",
++		SAA716x_EPRD(FGPI0, INT_STATUS),
++		SAA716x_EPRD(FGPI1, INT_STATUS),
++		SAA716x_EPRD(FGPI0, INT_ENABLE),
++		SAA716x_EPRD(FGPI0, INT_ENABLE));
++
++	dprintk(SAA716x_DEBUG, 1, "FGPI STAT 2=<%02x> 3=<%02x>, CTL 2=<%02x> 3=<%02x>",
++		SAA716x_EPRD(FGPI2, INT_STATUS),
++		SAA716x_EPRD(FGPI3, INT_STATUS),
++		SAA716x_EPRD(FGPI2, INT_ENABLE),
++		SAA716x_EPRD(FGPI3, INT_ENABLE));
++
++	dprintk(SAA716x_DEBUG, 1, "AI STAT 0=<%02x> 1=<%02x>, CTL 0=<%02x> 1=<%02x>",
++		SAA716x_EPRD(AI0, AI_STATUS),
++		SAA716x_EPRD(AI1, AI_STATUS),
++		SAA716x_EPRD(AI0, AI_CTL),
++		SAA716x_EPRD(AI1, AI_CTL));
++
++	dprintk(SAA716x_DEBUG, 1, "MSI STAT L=<%02x> H=<%02x>, CTL L=<%02x> H=<%02x>",
++		SAA716x_EPRD(MSI, MSI_INT_STATUS_L),
++		SAA716x_EPRD(MSI, MSI_INT_STATUS_H),
++		SAA716x_EPRD(MSI, MSI_INT_ENA_L),
++		SAA716x_EPRD(MSI, MSI_INT_ENA_H));
++
++	dprintk(SAA716x_DEBUG, 1, "I2C STAT 0=<%02x> 1=<%02x>, CTL 0=<%02x> 1=<%02x>",
++		SAA716x_EPRD(I2C_A, INT_STATUS),
++		SAA716x_EPRD(I2C_B, INT_STATUS),
++		SAA716x_EPRD(I2C_A, INT_ENABLE),
++		SAA716x_EPRD(I2C_B, INT_ENABLE));
++
++	dprintk(SAA716x_DEBUG, 1, "DCS STAT=<%02x>, CTL=<%02x>",
++		SAA716x_EPRD(DCS, DCSC_INT_STATUS),
++		SAA716x_EPRD(DCS, DCSC_INT_ENABLE));
++#endif
++	msiStatusL = SAA716x_EPRD(MSI, MSI_INT_STATUS_L);
++	SAA716x_EPWR(MSI, MSI_INT_STATUS_CLR_L, msiStatusL);
++	msiStatusH = SAA716x_EPRD(MSI, MSI_INT_STATUS_H);
++	SAA716x_EPWR(MSI, MSI_INT_STATUS_CLR_H, msiStatusH);
++
++	if (msiStatusL) {
++		if (msiStatusL & MSI_INT_TAGACK_FGPI_2) {
++			if (sti7109->int_count_enable)
++				sti7109->fgpi_int_count[0]++;
++			tasklet_schedule(&saa716x->fgpi[2].tasklet);
++		}
++		if (msiStatusL & MSI_INT_TAGACK_FGPI_3) {
++			if (sti7109->int_count_enable)
++				sti7109->fgpi_int_count[1]++;
++			tasklet_schedule(&saa716x->fgpi[3].tasklet);
++		}
++	}
++	if (msiStatusH) {
++		//dprintk(SAA716x_INFO, 1, "msiStatusH: %08X", msiStatusH);
++	}
++
++	if (msiStatusH & MSI_INT_EXTINT_0) {
++
++		phiISR = SAA716x_EPRD(PHI_1, FPGA_ADDR_EMI_ISR);
++		//dprintk(SAA716x_INFO, 1, "interrupt status register: %08X", phiISR);
++
++		if (sti7109->int_count_enable) {
++			int i;
++			sti7109->ext_int_total_count++;
++			for (i = 0; i < 16; i++)
++				if (phiISR & (1 << i))
++					sti7109->ext_int_source_count[i]++;
++		}
++
++		if (phiISR & ISR_CMD_MASK) {
++
++			u32 value;
++			u32 length;
++			/*dprintk(SAA716x_INFO, 1, "CMD interrupt source");*/
++
++			value = SAA716x_EPRD(PHI_1, ADDR_CMD_DATA);
++			value = __cpu_to_be32(value);
++			length = (value >> 16) + 2;
++
++			/*dprintk(SAA716x_INFO, 1, "CMD length: %d", length);*/
++
++			if (length > MAX_RESULT_LEN) {
++				dprintk(SAA716x_ERROR, 1, "CMD length %d > %d", length, MAX_RESULT_LEN);
++				length = MAX_RESULT_LEN;
++			}
++
++			saa716x_phi_read(saa716x, ADDR_CMD_DATA, sti7109->result_data, length);
++			sti7109->result_len = length;
++			sti7109->result_avail = 1;
++			wake_up(&sti7109->result_avail_wq);
++
++			phiISR &= ~ISR_CMD_MASK;
++			SAA716x_EPWR(PHI_1, FPGA_ADDR_EMI_ICLR, ISR_CMD_MASK);
++		}
++
++		if (phiISR & ISR_READY_MASK) {
++			/*dprintk(SAA716x_INFO, 1, "READY interrupt source");*/
++			sti7109->cmd_ready = 1;
++			wake_up(&sti7109->cmd_ready_wq);
++			phiISR &= ~ISR_READY_MASK;
++			SAA716x_EPWR(PHI_1, FPGA_ADDR_EMI_ICLR, ISR_READY_MASK);
++		}
++
++		if (phiISR & ISR_OSD_CMD_MASK) {
++
++			u32 value;
++			u32 length;
++			/*dprintk(SAA716x_INFO, 1, "OSD CMD interrupt source");*/
++
++			value = SAA716x_EPRD(PHI_1, ADDR_OSD_CMD_DATA);
++			value = __cpu_to_be32(value);
++			length = (value >> 16) + 2;
++
++			/*dprintk(SAA716x_INFO, 1, "OSD CMD length: %d", length);*/
++
++			if (length > MAX_RESULT_LEN) {
++				dprintk(SAA716x_ERROR, 1, "OSD CMD length %d > %d", length, MAX_RESULT_LEN);
++				length = MAX_RESULT_LEN;
++			}
++
++			saa716x_phi_read(saa716x, ADDR_OSD_CMD_DATA, sti7109->osd_result_data, length);
++			sti7109->osd_result_len = length;
++			sti7109->osd_result_avail = 1;
++			wake_up(&sti7109->osd_result_avail_wq);
++
++			phiISR &= ~ISR_OSD_CMD_MASK;
++			SAA716x_EPWR(PHI_1, FPGA_ADDR_EMI_ICLR, ISR_OSD_CMD_MASK);
++		}
++
++		if (phiISR & ISR_OSD_READY_MASK) {
++			/*dprintk(SAA716x_INFO, 1, "OSD_READY interrupt source");*/
++			sti7109->osd_cmd_ready = 1;
++			wake_up(&sti7109->osd_cmd_ready_wq);
++			phiISR &= ~ISR_OSD_READY_MASK;
++			SAA716x_EPWR(PHI_1, FPGA_ADDR_EMI_ICLR, ISR_OSD_READY_MASK);
++		}
++
++		if (phiISR & ISR_BLOCK_MASK) {
++			/*dprintk(SAA716x_INFO, 1, "BLOCK interrupt source");*/
++			sti7109->block_done = 1;
++			wake_up(&sti7109->block_done_wq);
++			phiISR &= ~ISR_BLOCK_MASK;
++			SAA716x_EPWR(PHI_1, FPGA_ADDR_EMI_ICLR, ISR_BLOCK_MASK);
++		}
++
++		if (phiISR & ISR_DATA_MASK) {
++			/*dprintk(SAA716x_INFO, 1, "DATA interrupt source");*/
++			sti7109->data_ready = 1;
++			wake_up(&sti7109->data_ready_wq);
++			phiISR &= ~ISR_DATA_MASK;
++			SAA716x_EPWR(PHI_1, FPGA_ADDR_EMI_ICLR, ISR_DATA_MASK);
++		}
++
++		if (phiISR & ISR_BOOT_FINISH_MASK) {
++			/*dprintk(SAA716x_INFO, 1, "BOOT FINISH interrupt source");*/
++			sti7109->boot_finished = 1;
++			wake_up(&sti7109->boot_finish_wq);
++			phiISR &= ~ISR_BOOT_FINISH_MASK;
++			SAA716x_EPWR(PHI_1, FPGA_ADDR_EMI_ICLR, ISR_BOOT_FINISH_MASK);
++		}
++
++		if (phiISR & ISR_AUDIO_PTS_MASK) {
++			u8 data[8];
++
++			saa716x_phi_read(saa716x, ADDR_AUDIO_PTS, data, 8);
++			sti7109->audio_pts = (((u64) data[3] & 0x01) << 32)
++					    | ((u64) data[4] << 24)
++					    | ((u64) data[5] << 16)
++					    | ((u64) data[6] << 8)
++					    | ((u64) data[7]);
++
++			phiISR &= ~ISR_AUDIO_PTS_MASK;
++			SAA716x_EPWR(PHI_1, FPGA_ADDR_EMI_ICLR, ISR_AUDIO_PTS_MASK);
++
++			/*dprintk(SAA716x_INFO, 1, "AUDIO PTS: %llX", sti7109->audio_pts);*/
++		}
++
++		if (phiISR & ISR_VIDEO_PTS_MASK) {
++			u8 data[8];
++
++			saa716x_phi_read(saa716x, ADDR_VIDEO_PTS, data, 8);
++			sti7109->video_pts = (((u64) data[3] & 0x01) << 32)
++					    | ((u64) data[4] << 24)
++					    | ((u64) data[5] << 16)
++					    | ((u64) data[6] << 8)
++					    | ((u64) data[7]);
++
++			phiISR &= ~ISR_VIDEO_PTS_MASK;
++			SAA716x_EPWR(PHI_1, FPGA_ADDR_EMI_ICLR, ISR_VIDEO_PTS_MASK);
++
++			/*dprintk(SAA716x_INFO, 1, "VIDEO PTS: %llX", sti7109->video_pts);*/
++		}
++
++		if (phiISR & ISR_CURRENT_STC_MASK) {
++			u8 data[8];
++
++			saa716x_phi_read(saa716x, ADDR_CURRENT_STC, data, 8);
++			sti7109->current_stc = (((u64) data[3] & 0x01) << 32)
++					      | ((u64) data[4] << 24)
++					      | ((u64) data[5] << 16)
++					      | ((u64) data[6] << 8)
++					      | ((u64) data[7]);
++
++			phiISR &= ~ISR_CURRENT_STC_MASK;
++			SAA716x_EPWR(PHI_1, FPGA_ADDR_EMI_ICLR, ISR_CURRENT_STC_MASK);
++
++			/*dprintk(SAA716x_INFO, 1, "CURRENT STC: %llu", sti7109->current_stc);*/
++		}
++
++		if (phiISR & ISR_REMOTE_EVENT_MASK) {
++			u8 data[4];
++			u32 remote_event;
++
++			saa716x_phi_read(saa716x, ADDR_REMOTE_EVENT, data, 4);
++			remote_event = (data[3] << 24)
++				     | (data[2] << 16)
++				     | (data[1] << 8)
++				     | (data[0]);
++			memset(data, 0, sizeof(data));
++			saa716x_phi_write(saa716x, ADDR_REMOTE_EVENT, data, 4);
++
++			phiISR &= ~ISR_REMOTE_EVENT_MASK;
++			SAA716x_EPWR(PHI_1, FPGA_ADDR_EMI_ICLR, ISR_REMOTE_EVENT_MASK);
++
++			if (remote_event == 0) {
++				dprintk(SAA716x_ERROR, 1, "REMOTE EVENT: %u ignored", remote_event);
++			} else {
++				dprintk(SAA716x_INFO, 1, "REMOTE EVENT: %u", remote_event);
++				saa716x_ir_handler(saa716x, remote_event);
++			}
++		}
++
++		if (phiISR & ISR_DVO_FORMAT_MASK) {
++			u8 data[4];
++			u32 format;
++
++			saa716x_phi_read(saa716x, ADDR_DVO_FORMAT, data, 4);
++			format = (data[0] << 24)
++			       | (data[1] << 16)
++			       | (data[2] << 8)
++			       | (data[3]);
++
++			phiISR &= ~ISR_DVO_FORMAT_MASK;
++			SAA716x_EPWR(PHI_1, FPGA_ADDR_EMI_ICLR, ISR_DVO_FORMAT_MASK);
++
++			dprintk(SAA716x_INFO, 1, "DVO FORMAT CHANGE: %u", format);
++		}
++
++		if (phiISR & ISR_LOG_MESSAGE_MASK) {
++			char message[SIZE_LOG_MESSAGE_DATA];
++
++			saa716x_phi_read(saa716x, ADDR_LOG_MESSAGE, message,
++					 SIZE_LOG_MESSAGE_DATA);
++
++			phiISR &= ~ISR_LOG_MESSAGE_MASK;
++			SAA716x_EPWR(PHI_1, FPGA_ADDR_EMI_ICLR, ISR_LOG_MESSAGE_MASK);
++
++			dprintk(SAA716x_INFO, 1, "LOG MESSAGE: %.*s",
++				SIZE_LOG_MESSAGE_DATA, message);
++		}
++
++		if (phiISR & ISR_FIFO1_EMPTY_MASK) {
++			u32 fifoCtrl;
++
++			/*dprintk(SAA716x_INFO, 1, "FIFO EMPTY interrupt source");*/
++			fifoCtrl = SAA716x_EPRD(PHI_1, FPGA_ADDR_FIFO_CTRL);
++			fifoCtrl &= ~0x4;
++			SAA716x_EPWR(PHI_1, FPGA_ADDR_FIFO_CTRL, fifoCtrl);
++			tasklet_schedule(&sti7109->fifo_tasklet);
++			phiISR &= ~ISR_FIFO1_EMPTY_MASK;
++		}
++
++		if (phiISR) {
++			dprintk(SAA716x_INFO, 1, "unknown interrupt source");
++			SAA716x_EPWR(PHI_1, FPGA_ADDR_EMI_ICLR, phiISR);
++		}
++	}
++
++	if (sti7109->int_count_enable) {
++		if (jiffies - sti7109->last_int_ticks >= HZ) {
++			dprintk(SAA716x_INFO, 1, "int count: t: %d, f:%d %d, "
++				"e: %d (%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d)",
++				sti7109->total_int_count,
++				sti7109->fgpi_int_count[0],
++				sti7109->fgpi_int_count[1],
++				sti7109->ext_int_total_count,
++				sti7109->ext_int_source_count[0],
++				sti7109->ext_int_source_count[1],
++				sti7109->ext_int_source_count[2],
++				sti7109->ext_int_source_count[3],
++				sti7109->ext_int_source_count[4],
++				sti7109->ext_int_source_count[5],
++				sti7109->ext_int_source_count[6],
++				sti7109->ext_int_source_count[7],
++				sti7109->ext_int_source_count[8],
++				sti7109->ext_int_source_count[9],
++				sti7109->ext_int_source_count[10],
++				sti7109->ext_int_source_count[11],
++				sti7109->ext_int_source_count[12],
++				sti7109->ext_int_source_count[13],
++				sti7109->ext_int_source_count[14],
++				sti7109->ext_int_source_count[15]);
++			sti7109->total_int_count = 0;
++			memset(sti7109->fgpi_int_count, 0, sizeof(sti7109->fgpi_int_count));
++			sti7109->ext_int_total_count = 0;
++			memset(sti7109->ext_int_source_count, 0, sizeof(sti7109->ext_int_source_count));
++			sti7109->last_int_ticks = jiffies;
++		}
++	}
++	return IRQ_HANDLED;
++}
++
++#define SAA716x_MODEL_S2_6400_DUAL	"Technotrend S2 6400 Dual S2 Premium"
++#define SAA716x_DEV_S2_6400_DUAL	"2x DVB-S/S2 + Hardware decode"
++
++static struct stv090x_config tt6400_stv090x_config = {
++	.device			= STV0900,
++	.demod_mode		= STV090x_DUAL,
++	.clk_mode		= STV090x_CLK_EXT,
++
++	.xtal			= 13500000,
++	.address		= 0x68,
++
++	.ts1_mode		= STV090x_TSMODE_SERIAL_CONTINUOUS,
++	.ts2_mode		= STV090x_TSMODE_SERIAL_CONTINUOUS,
++	.ts1_clk		= 135000000,
++	.ts2_clk		= 135000000,
++
++	.repeater_level		= STV090x_RPTLEVEL_16,
++
++	.tuner_init		= NULL,
++	.tuner_set_mode		= NULL,
++	.tuner_set_frequency	= NULL,
++	.tuner_get_frequency	= NULL,
++	.tuner_set_bandwidth	= NULL,
++	.tuner_get_bandwidth	= NULL,
++	.tuner_set_bbgain	= NULL,
++	.tuner_get_bbgain	= NULL,
++	.tuner_set_refclk	= NULL,
++	.tuner_get_status	= NULL,
++};
++
++static struct stv6110x_config tt6400_stv6110x_config = {
++	.addr			= 0x60,
++	.refclk			= 27000000,
++	.clk_div		= 2,
++};
++
++static struct isl6423_config tt6400_isl6423_config[2] = {
++	{
++		.current_max		= SEC_CURRENT_515m,
++		.curlim			= SEC_CURRENT_LIM_ON,
++		.mod_extern		= 1,
++		.addr			= 0x09,
++	},
++	{
++		.current_max		= SEC_CURRENT_515m,
++		.curlim			= SEC_CURRENT_LIM_ON,
++		.mod_extern		= 1,
++		.addr			= 0x08,
++	}
++};
++
++
++static int saa716x_s26400_frontend_attach(struct saa716x_adapter *adapter, int count)
++{
++	struct saa716x_dev *saa716x	= adapter->saa716x;
++	struct saa716x_i2c *i2c		= saa716x->i2c;
++	struct i2c_adapter *i2c_adapter	= &i2c[SAA716x_I2C_BUS_A].i2c_adapter;
++
++	dprintk(SAA716x_DEBUG, 1, "Adapter (%d) SAA716x frontend Init", count);
++	dprintk(SAA716x_DEBUG, 1, "Adapter (%d) Device ID=%02x", count, saa716x->pdev->subsystem_device);
++
++	if (count == 0 || count == 1) {
++		adapter->fe = dvb_attach(stv090x_attach,
++					 &tt6400_stv090x_config,
++					 i2c_adapter,
++					 STV090x_DEMODULATOR_0 + count);
++
++		if (adapter->fe) {
++			struct stv6110x_devctl *ctl;
++			ctl = dvb_attach(stv6110x_attach,
++					 adapter->fe,
++					 &tt6400_stv6110x_config,
++					 i2c_adapter);
++
++			tt6400_stv090x_config.tuner_init	  = ctl->tuner_init;
++			tt6400_stv090x_config.tuner_sleep	  = ctl->tuner_sleep;
++			tt6400_stv090x_config.tuner_set_mode	  = ctl->tuner_set_mode;
++			tt6400_stv090x_config.tuner_set_frequency = ctl->tuner_set_frequency;
++			tt6400_stv090x_config.tuner_get_frequency = ctl->tuner_get_frequency;
++			tt6400_stv090x_config.tuner_set_bandwidth = ctl->tuner_set_bandwidth;
++			tt6400_stv090x_config.tuner_get_bandwidth = ctl->tuner_get_bandwidth;
++			tt6400_stv090x_config.tuner_set_bbgain	  = ctl->tuner_set_bbgain;
++			tt6400_stv090x_config.tuner_get_bbgain	  = ctl->tuner_get_bbgain;
++			tt6400_stv090x_config.tuner_set_refclk	  = ctl->tuner_set_refclk;
++			tt6400_stv090x_config.tuner_get_status	  = ctl->tuner_get_status;
++
++			if (count == 1) {
++				/* call the init function once to initialize
++				   tuner's clock output divider and demod's
++				   master clock */
++				/* The second tuner drives the STV0900 so
++				   call it only for adapter 1 */
++				if (adapter->fe->ops.init)
++					adapter->fe->ops.init(adapter->fe);
++			}
++
++			dvb_attach(isl6423_attach,
++				   adapter->fe,
++				   i2c_adapter,
++				   &tt6400_isl6423_config[count]);
++
++		}
++	}
++	return 0;
++}
++
++static struct saa716x_config saa716x_s26400_config = {
++	.model_name		= SAA716x_MODEL_S2_6400_DUAL,
++	.dev_type		= SAA716x_DEV_S2_6400_DUAL,
++	.boot_mode		= SAA716x_EXT_BOOT,
++	.adapters		= 2,
++	.frontend_attach	= saa716x_s26400_frontend_attach,
++	.irq_handler		= saa716x_ff_pci_irq,
++	.i2c_rate		= SAA716x_I2C_RATE_100,
++
++	.adap_config		= {
++		{
++			/* Adapter 0 */
++			.ts_port = 2,
++			.worker = demux_worker
++		},{
++			/* Adapter 1 */
++			.ts_port = 3,
++			.worker = demux_worker
++		}
++	}
++};
++
++
++static struct pci_device_id saa716x_ff_pci_table[] = {
++
++	MAKE_ENTRY(TECHNOTREND, S2_6400_DUAL_S2_PREMIUM_DEVEL, SAA7160, &saa716x_s26400_config),  /* S2 6400 Dual development version */
++	MAKE_ENTRY(TECHNOTREND, S2_6400_DUAL_S2_PREMIUM_PROD, SAA7160, &saa716x_s26400_config), /* S2 6400 Dual production version */
++	{ }
++};
++MODULE_DEVICE_TABLE(pci, saa716x_ff_pci_table);
++
++static struct pci_driver saa716x_ff_pci_driver = {
++	.name			= DRIVER_NAME,
++	.id_table		= saa716x_ff_pci_table,
++	.probe			= saa716x_ff_pci_probe,
++	.remove			= saa716x_ff_pci_remove,
++};
++
++static int __devinit saa716x_ff_init(void)
++{
++	return pci_register_driver(&saa716x_ff_pci_driver);
++}
++
++static void __devexit saa716x_ff_exit(void)
++{
++	return pci_unregister_driver(&saa716x_ff_pci_driver);
++}
++
++module_init(saa716x_ff_init);
++module_exit(saa716x_ff_exit);
++
++MODULE_DESCRIPTION("SAA716x FF driver");
++MODULE_AUTHOR("Manu Abraham");
++MODULE_LICENSE("GPL");
+diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_ff_main.c.orig v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_ff_main.c.orig
+--- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_ff_main.c.orig	1970-01-01 01:00:00.000000000 +0100
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_ff_main.c.orig	2011-11-14 23:29:06.480839709 +0100
+@@ -0,0 +1,1697 @@
 +#include <linux/module.h>
 +#include <linux/moduleparam.h>
 +#include <linux/kernel.h>
@@ -4520,18 +6674,25 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_ff_main.c v4l-dvb-p
 +
 +		if (phiISR & ISR_REMOTE_EVENT_MASK) {
 +			u8 data[4];
++			u32 remote_event;
 +
 +			saa716x_phi_read(saa716x, ADDR_REMOTE_EVENT, data, 4);
-+			sti7109->remote_event = (data[3] << 24)
-+					      | (data[2] << 16)
-+					      | (data[1] << 8)
-+					      | (data[0]);
++			remote_event = (data[3] << 24)
++				     | (data[2] << 16)
++				     | (data[1] << 8)
++				     | (data[0]);
++			memset(data, 0, sizeof(data));
++			saa716x_phi_write(saa716x, ADDR_REMOTE_EVENT, data, 4);
 +
 +			phiISR &= ~ISR_REMOTE_EVENT_MASK;
 +			SAA716x_EPWR(PHI_1, FPGA_ADDR_EMI_ICLR, ISR_REMOTE_EVENT_MASK);
 +
-+			dprintk(SAA716x_INFO, 1, "REMOTE EVENT: %u", sti7109->remote_event);
-+			saa716x_ir_handler(saa716x, sti7109->remote_event);
++			if (remote_event == 0) {
++				dprintk(SAA716x_ERROR, 1, "REMOTE EVENT: %u ignored", remote_event);
++			} else {
++				dprintk(SAA716x_INFO, 1, "REMOTE EVENT: %u", remote_event);
++				saa716x_ir_handler(saa716x, remote_event);
++			}
 +		}
 +
 +		if (phiISR & ISR_DVO_FORMAT_MASK) {
@@ -4634,8 +6795,8 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_ff_main.c v4l-dvb-p
 +
 +	.ts1_mode		= STV090x_TSMODE_SERIAL_CONTINUOUS,
 +	.ts2_mode		= STV090x_TSMODE_SERIAL_CONTINUOUS,
-+	.ts1_clk		= 90000000,
-+	.ts2_clk		= 90000000,
++	.ts1_clk		= 135000000,
++	.ts2_clk		= 135000000,
 +
 +	.repeater_level		= STV090x_RPTLEVEL_16,
 +
@@ -4784,8 +6945,8 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_ff_main.c v4l-dvb-p
 +MODULE_LICENSE("GPL");
 diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_fgpi.c v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_fgpi.c
 --- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_fgpi.c	1970-01-01 01:00:00.000000000 +0100
-+++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_fgpi.c	2011-06-05 10:13:46.491993234 +0200
-@@ -0,0 +1,346 @@
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_fgpi.c	2011-11-14 23:52:58.168789171 +0100
+@@ -0,0 +1,389 @@
 +#include <linux/kernel.h>
 +
 +#include "saa716x_mod.h"
@@ -4884,6 +7045,49 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_fgpi.c v4l-dvb-patc
 +	SAA716x_EPWR(fgpi_port, INT_CLR_STATUS, 0x7f); /* clear status */
 +}
 +EXPORT_SYMBOL_GPL(saa716x_fgpiint_disable);
++
++int saa716x_fgpi_get_write_index(struct saa716x_dev *saa716x, u32 fgpi_index)
++{
++	u32 fgpi_base;
++	u32 buf_mode_reg;
++	u32 buf_mode;
++
++ 	switch (fgpi_index) {
++	case 0: /* FGPI_0 */
++		fgpi_base = FGPI0;
++		buf_mode_reg = BAM_FGPI0_DMA_BUF_MODE;
++		break;
++
++	case 1: /* FGPI_1 */
++		fgpi_base = FGPI1;
++		buf_mode_reg = BAM_FGPI1_DMA_BUF_MODE;
++		break;
++
++	case 2: /* FGPI_2 */
++		fgpi_base = FGPI2;
++		buf_mode_reg = BAM_FGPI2_DMA_BUF_MODE;
++		break;
++
++	case 3: /* FGPI_3 */
++		fgpi_base = FGPI3;
++		buf_mode_reg = BAM_FGPI3_DMA_BUF_MODE;
++		break;
++
++	default:
++		printk(KERN_ERR "%s: unexpected fgpi %u\n",
++		       __func__, fgpi_index);
++		return -1;
++	}
++
++	buf_mode = SAA716x_EPRD(BAM, buf_mode_reg);
++	if (saa716x->revision < 2) {
++		/* workaround for revision 1: restore buffer numbers on BAM */
++		SAA716x_EPWR(fgpi_base, INT_CLR_STATUS, 0x7F);
++		SAA716x_EPWR(BAM, buf_mode_reg, buf_mode | 7);
++	}
++	return (buf_mode >> 3) & 0x7;
++}
++EXPORT_SYMBOL_GPL(saa716x_fgpi_get_write_index);
 +
 +static u32 saa716x_init_ptables(struct saa716x_dmabuf *dmabuf, int channel)
 +{
@@ -5134,8 +7338,8 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_fgpi.c v4l-dvb-patc
 +}
 diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_fgpi.h v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_fgpi.h
 --- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_fgpi.h	1970-01-01 01:00:00.000000000 +0100
-+++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_fgpi.h	2011-06-05 10:13:46.491993234 +0200
-@@ -0,0 +1,110 @@
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_fgpi.h	2011-11-14 23:52:58.168789171 +0100
+@@ -0,0 +1,112 @@
 +#ifndef __SAA716x_FGPI_H
 +#define __SAA716x_FGPI_H
 +
@@ -5237,6 +7441,8 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_fgpi.h v4l-dvb-patc
 +};
 +
 +extern void saa716x_fgpiint_disable(struct saa716x_dmabuf *dmabuf, int channel);
++extern int saa716x_fgpi_get_write_index(struct saa716x_dev *saa716x,
++					u32 fgpi_index);
 +extern int saa716x_fgpi_start(struct saa716x_dev *saa716x, int port,
 +			      struct fgpi_stream_params *stream_params);
 +extern int saa716x_fgpi_stop(struct saa716x_dev *saa716x, int port);
@@ -5248,7 +7454,7 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_fgpi.h v4l-dvb-patc
 +#endif /* __SAA716x_FGPI_H */
 diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_fgpi_reg.h v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_fgpi_reg.h
 --- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_fgpi_reg.h	1970-01-01 01:00:00.000000000 +0100
-+++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_fgpi_reg.h	2011-06-05 10:13:46.491993234 +0200
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_fgpi_reg.h	2011-11-14 23:52:58.168789171 +0100
 @@ -0,0 +1,74 @@
 +#ifndef __SAA716x_FGPI_REG_H
 +#define __SAA716x_FGPI_REG_H
@@ -5326,7 +7532,7 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_fgpi_reg.h v4l-dvb-
 +#endif /* __SAA716x_FGPI_REG_H */
 diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_gpio.c v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_gpio.c
 --- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_gpio.c	1970-01-01 01:00:00.000000000 +0100
-+++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_gpio.c	2011-06-05 10:13:46.491993234 +0200
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_gpio.c	2011-11-14 23:52:58.168789171 +0100
 @@ -0,0 +1,140 @@
 +#include <linux/kernel.h>
 +#include <linux/spinlock.h>
@@ -5470,7 +7676,7 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_gpio.c v4l-dvb-patc
 +EXPORT_SYMBOL_GPL(saa716x_gpio_read);
 diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_gpio.h v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_gpio.h
 --- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_gpio.h	1970-01-01 01:00:00.000000000 +0100
-+++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_gpio.h	2011-06-05 10:13:46.491993234 +0200
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_gpio.h	2011-11-14 23:52:58.168789171 +0100
 @@ -0,0 +1,26 @@
 +#ifndef __SAA716x_GPIO_H
 +#define __SAA716x_GPIO_H
@@ -5500,7 +7706,7 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_gpio.h v4l-dvb-patc
 +#endif /* __SAA716x_GPIO_H */
 diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_gpio_reg.h v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_gpio_reg.h
 --- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_gpio_reg.h	1970-01-01 01:00:00.000000000 +0100
-+++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_gpio_reg.h	2011-06-05 10:13:46.491993234 +0200
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_gpio_reg.h	2011-11-14 23:52:58.168789171 +0100
 @@ -0,0 +1,47 @@
 +#ifndef __SAA716x_GPIO_REG_H
 +#define __SAA716x_GPIO_REG_H
@@ -5551,7 +7757,7 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_gpio_reg.h v4l-dvb-
 +#endif /* __SAA716x_GPIO_REG_H */
 diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_greg.c v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_greg.c
 --- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_greg.c	1970-01-01 01:00:00.000000000 +0100
-+++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_greg.c	2011-06-05 10:13:46.491993234 +0200
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_greg.c	2011-11-14 23:52:58.168789171 +0100
 @@ -0,0 +1,42 @@
 +#include <linux/kernel.h>
 +
@@ -5597,7 +7803,7 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_greg.c v4l-dvb-patc
 +}
 diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_greg.h v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_greg.h
 --- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_greg.h	1970-01-01 01:00:00.000000000 +0100
-+++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_greg.h	2011-06-05 10:13:46.491993234 +0200
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_greg.h	2011-11-14 23:52:58.168789171 +0100
 @@ -0,0 +1,9 @@
 +#ifndef __SAA716x_GREG_H
 +#define __SAA716x_GREG_H
@@ -5610,7 +7816,7 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_greg.h v4l-dvb-patc
 +#endif /* __SAA716x_GREG_H */
 diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_greg_reg.h v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_greg_reg.h
 --- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_greg_reg.h	1970-01-01 01:00:00.000000000 +0100
-+++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_greg_reg.h	2011-06-05 10:13:46.491993234 +0200
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_greg_reg.h	2011-11-14 23:52:58.168789171 +0100
 @@ -0,0 +1,91 @@
 +#ifndef __SAA716x_GREG_REG_H
 +#define __SAA716x_GREG_REG_H
@@ -5705,8 +7911,8 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_greg_reg.h v4l-dvb-
 +#endif /* __SAA716x_GREG_REG_H */
 diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_hybrid.c v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_hybrid.c
 --- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_hybrid.c	1970-01-01 01:00:00.000000000 +0100
-+++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_hybrid.c	2011-06-05 10:13:46.491993234 +0200
-@@ -0,0 +1,576 @@
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_hybrid.c	2011-11-14 23:52:58.168789171 +0100
+@@ -0,0 +1,648 @@
 +#include <linux/module.h>
 +#include <linux/moduleparam.h>
 +#include <linux/kernel.h>
@@ -5729,8 +7935,9 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_hybrid.c v4l-dvb-pa
 +
 +#include "saa716x_mod.h"
 +
-+#include "saa716x_msi_reg.h"
 +#include "saa716x_gpio_reg.h"
++#include "saa716x_greg_reg.h"
++#include "saa716x_msi_reg.h"
 +
 +#include "saa716x_adap.h"
 +#include "saa716x_i2c.h"
@@ -5744,6 +7951,7 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_hybrid.c v4l-dvb-pa
 +#include "zl10353.h"
 +#include "mb86a16.h"
 +#include "tda1004x.h"
++#include "tda827x.h"
 +
 +unsigned int verbose;
 +module_param(verbose, int, 0644);
@@ -5759,7 +7967,6 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_hybrid.c v4l-dvb-pa
 +{
 +	struct saa716x_dev *saa716x;
 +	int err = 0;
-+	u32 sts;
 +
 +	saa716x = kzalloc(sizeof (struct saa716x_dev), GFP_KERNEL);
 +	if (saa716x == NULL) {
@@ -5804,13 +8011,13 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_hybrid.c v4l-dvb-pa
 +		goto fail1;
 +	}
 +
-+	pci_read_config_dword(pdev, 0x06, &sts);
-+
 +	err = saa716x_i2c_init(saa716x);
 +	if (err) {
 +		dprintk(SAA716x_ERROR, 1, "SAA716x I2C Initialization failed");
 +		goto fail3;
 +	}
++
++	saa716x_gpio_init(saa716x);
 +
 +	err = saa716x_dump_eeprom(saa716x);
 +	if (err) {
@@ -5821,6 +8028,11 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_hybrid.c v4l-dvb-pa
 +	if (err) {
 +		dprintk(SAA716x_ERROR, 1, "SAA716x EEPROM dump failed");
 +	}
++
++	/* set default port mapping */
++	SAA716x_EPWR(GREG, GREG_VI_CTRL, 0x2C688F44);
++	/* enable FGPI3 and FGPI0 for TS input from Port 3 and 6 */
++	SAA716x_EPWR(GREG, GREG_FGPI_CTRL, 0x894);
 +
 +	err = saa716x_dvb_init(saa716x);
 +	if (err) {
@@ -5838,7 +8050,6 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_hybrid.c v4l-dvb-pa
 +	saa716x_pci_exit(saa716x);
 +fail1:
 +	kfree(saa716x);
-+
 +fail0:
 +	return err;
 +}
@@ -5918,9 +8129,71 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_hybrid.c v4l-dvb-pa
 +		SAA716x_EPRD(DCS, DCSC_INT_ENABLE));
 +#endif
 +
++	if (stat_l) {
++		if (stat_l & MSI_INT_TAGACK_FGPI_0) {
++			tasklet_schedule(&saa716x->fgpi[0].tasklet);
++		}
++		if (stat_l & MSI_INT_TAGACK_FGPI_1) {
++			tasklet_schedule(&saa716x->fgpi[1].tasklet);
++		}
++		if (stat_l & MSI_INT_TAGACK_FGPI_2) {
++			tasklet_schedule(&saa716x->fgpi[2].tasklet);
++		}
++		if (stat_l & MSI_INT_TAGACK_FGPI_3) {
++			tasklet_schedule(&saa716x->fgpi[3].tasklet);
++		}
++	}
++
 +	return IRQ_HANDLED;
 +}
 +
++static void demux_worker(unsigned long data)
++{
++	struct saa716x_fgpi_stream_port *fgpi_entry = (struct saa716x_fgpi_stream_port *)data;
++	struct saa716x_dev *saa716x = fgpi_entry->saa716x;
++	struct dvb_demux *demux;
++	u32 fgpi_index;
++	u32 i;
++	u32 write_index;
++
++	fgpi_index = fgpi_entry->dma_channel - 6;
++	demux = NULL;
++	for (i = 0; i < saa716x->config->adapters; i++) {
++		if (saa716x->config->adap_config[i].ts_port == fgpi_index) {
++			demux = &saa716x->saa716x_adap[i].demux;
++			break;
++		}
++	}
++	if (demux == NULL) {
++		printk(KERN_ERR "%s: unexpected channel %u\n",
++		       __func__, fgpi_entry->dma_channel);
++		return;
++	}
++
++	write_index = saa716x_fgpi_get_write_index(saa716x, fgpi_index);
++	if (write_index < 0)
++		return;
++
++	dprintk(SAA716x_DEBUG, 1, "dma buffer = %d", write_index);
++
++	if (write_index == fgpi_entry->read_index) {
++		printk(KERN_DEBUG "%s: called but nothing to do\n", __func__);
++		return;
++	}
++
++	do {
++		u8 *data = (u8 *)fgpi_entry->dma_buf[fgpi_entry->read_index].mem_virt;
++
++		pci_dma_sync_sg_for_cpu(saa716x->pdev,
++			fgpi_entry->dma_buf[fgpi_entry->read_index].sg_list,
++			fgpi_entry->dma_buf[fgpi_entry->read_index].list_len,
++			PCI_DMA_FROMDEVICE);
++
++		dvb_dmx_swfilter(demux, data, 348 * 188);
++
++		fgpi_entry->read_index = (fgpi_entry->read_index + 1) & 7;
++	} while (write_index != fgpi_entry->read_index);
++}
 +
 +/*
 + * Twinhan/Azurewave VP-6090
@@ -5948,13 +8221,6 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_hybrid.c v4l-dvb-pa
 +	.if_freq		= TDA10046_FREQ_3617,
 +	.request_firmware	= tda1004x_vp6090_request_firmware,
 +};
-+
-+static int load_config_vp6090(struct saa716x_dev *saa716x)
-+{
-+	int ret = 0;
-+
-+	return ret;
-+}
 +
 +static int vp6090_dvbs_set_voltage(struct dvb_frontend *fe, fe_sec_voltage_t voltage)
 +{
@@ -5993,8 +8259,10 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_hybrid.c v4l-dvb-pa
 +
 +	dprintk(SAA716x_ERROR, 1, "Adapter (%d) Power ON", count);
 +
-+	saa716x_gpio_write(saa716x, GPIO_11, 1);
-+	saa716x_gpio_write(saa716x, GPIO_10, 1);
++	saa716x_gpio_set_output(saa716x, 11);
++	saa716x_gpio_set_output(saa716x, 10);
++	saa716x_gpio_write(saa716x, 11, 1);
++	saa716x_gpio_write(saa716x, 10, 1);
 +	msleep(100);
 +#if 0
 +	dprintk(SAA716x_ERROR, 1, "Probing for MB86A16 (DVB-S/DSS)");
@@ -6023,7 +8291,6 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_hybrid.c v4l-dvb-pa
 +	.model_name		= SAA716x_MODEL_TWINHAN_VP6090,
 +	.dev_type		= SAA716x_DEV_TWINHAN_VP6090,
 +	.boot_mode		= SAA716x_EXT_BOOT,
-+	.load_config		= &load_config_vp6090,
 +	.adapters		= 1,
 +	.frontend_attach	= saa716x_vp6090_frontend_attach,
 +	.irq_handler		= saa716x_hybrid_pci_irq,
@@ -6057,12 +8324,6 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_hybrid.c v4l-dvb-pa
 +	.request_firmware	= tda1004x_atlantis_request_firmware,
 +};
 +
-+static int load_config_atlantis(struct saa716x_dev *saa716x)
-+{
-+	int ret = 0;
-+	return ret;
-+}
-+
 +static int saa716x_atlantis_frontend_attach(struct saa716x_adapter *adapter, int count)
 +{
 +	struct saa716x_dev *saa716x = adapter->saa716x;
@@ -6072,7 +8333,9 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_hybrid.c v4l-dvb-pa
 +		dprintk(SAA716x_DEBUG, 1, "Adapter (%d) SAA716x frontend Init", count);
 +		dprintk(SAA716x_DEBUG, 1, "Adapter (%d) Device ID=%02x", count, saa716x->pdev->subsystem_device);
 +		dprintk(SAA716x_ERROR, 1, "Adapter (%d) Power ON", count);
-+		saa716x_gpio_write(saa716x, GPIO_14, 1);
++
++		saa716x_gpio_set_output(saa716x, 14);
++		saa716x_gpio_write(saa716x, 14, 1);
 +		msleep(100);
 +
 +		adapter->fe = tda10046_attach(&tda1004x_atlantis_config, &i2c->i2c_adapter);
@@ -6092,7 +8355,6 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_hybrid.c v4l-dvb-pa
 +	.model_name		= SAA716x_MODEL_NXP_ATLANTIS,
 +	.dev_type		= SAA716x_DEV_NXP_ATLANTIS,
 +	.boot_mode		= SAA716x_EXT_BOOT,
-+	.load_config		= &load_config_atlantis,
 +	.adapters		= 2,
 +	.frontend_attach	= saa716x_atlantis_frontend_attach,
 +	.irq_handler		= saa716x_hybrid_pci_irq,
@@ -6120,22 +8382,26 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_hybrid.c v4l-dvb-pa
 +	.demod_address		= 0x8,
 +	.invert			= 0,
 +	.invert_oclk		= 0,
-+	.xtal_freq		= TDA10046_XTAL_4M,
-+	.agc_config		= TDA10046_AGC_DEFAULT,
-+	.if_freq		= TDA10046_FREQ_3617,
++	.xtal_freq		= TDA10046_XTAL_16M,
++	.agc_config		= TDA10046_AGC_TDA827X,
++	.if_freq		= TDA10046_FREQ_045,
 +	.request_firmware	= tda1004x_nemo_request_firmware,
++	.tuner_address          = 0x60,
 +};
 +
-+static int load_config_nemo(struct saa716x_dev *saa716x)
-+{
-+    int ret = 0;
-+    return ret;
-+}
++static struct tda827x_config tda827x_nemo_config = {
++	.init		= NULL,
++	.sleep		= NULL,
++	.config		= 0,
++	.switch_addr	= 0,
++	.agcf		= NULL,
++};
 +
 +static int saa716x_nemo_frontend_attach(struct saa716x_adapter *adapter, int count)
 +{
 +	struct saa716x_dev *saa716x = adapter->saa716x;
-+	struct saa716x_i2c *i2c = &saa716x->i2c[1];
++	struct saa716x_i2c *demod_i2c = &saa716x->i2c[SAA716x_I2C_BUS_B];
++	struct saa716x_i2c *tuner_i2c = &saa716x->i2c[SAA716x_I2C_BUS_A];
 +
 +
 +	if (count  == 0) {
@@ -6143,15 +8409,34 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_hybrid.c v4l-dvb-pa
 +		dprintk(SAA716x_DEBUG, 1, "Adapter (%d) Device ID=%02x", count, saa716x->pdev->subsystem_device);
 +		dprintk(SAA716x_ERROR, 1, "Adapter (%d) Power ON", count);
 +
-+		saa716x_gpio_set_output(saa716x, 14);
-+		saa716x_gpio_write(saa716x, 14, 1);
-+		msleep(100);
++		/* GPIO 26 controls a +15dB gain */
++		saa716x_gpio_set_output(saa716x, 26);
++		saa716x_gpio_write(saa716x, 26, 0);
 +
-+		adapter->fe = tda10046_attach(&tda1004x_nemo_config, &i2c->i2c_adapter);
++		saa716x_gpio_set_output(saa716x, 14);
++
++		/* Reset the demodulator */
++		saa716x_gpio_write(saa716x, 14, 1);
++		msleep(10);
++		saa716x_gpio_write(saa716x, 14, 0);
++		msleep(10);
++		saa716x_gpio_write(saa716x, 14, 1);
++		msleep(10);
++
++		adapter->fe = tda10046_attach(&tda1004x_nemo_config,
++					      &demod_i2c->i2c_adapter);
 +		if (adapter->fe) {
 +			dprintk(SAA716x_ERROR, 1, "found TDA10046 DVB-T frontend @0x%02x",
 +				tda1004x_nemo_config.demod_address);
 +
++		} else {
++			goto exit;
++		}
++		if (dvb_attach(tda827x_attach, adapter->fe,
++			       tda1004x_nemo_config.tuner_address,
++			       &tuner_i2c->i2c_adapter, &tda827x_nemo_config)) {
++			dprintk(SAA716x_ERROR, 1, "found TDA8275 tuner @0x%02x",
++				tda1004x_nemo_config.tuner_address);
 +		} else {
 +			goto exit;
 +		}
@@ -6168,22 +8453,23 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_hybrid.c v4l-dvb-pa
 +	.model_name		= SAA716x_MODEL_NXP_NEMO,
 +	.dev_type		= SAA716x_DEV_NXP_NEMO,
 +	.boot_mode		= SAA716x_EXT_BOOT,
-+	.load_config		= &load_config_nemo,
 +	.adapters		= 1,
 +	.frontend_attach	= saa716x_nemo_frontend_attach,
 +	.irq_handler		= saa716x_hybrid_pci_irq,
 +	.i2c_rate		= SAA716x_I2C_RATE_100,
++
++	.adap_config		= {
++		{
++			/* Adapter 0 */
++			.ts_port = 3, /* using FGPI 3 */
++			.worker = demux_worker
++		}
++	}
 +};
 +
 +
 +#define SAA716x_MODEL_AVERMEDIA_HC82	"Avermedia HC82 Express-54"
 +#define SAA716x_DEV_AVERMEDIA_HC82	"DVB-T + Analog"
-+
-+static int load_config_averhc82(struct saa716x_dev *saa716x)
-+{
-+	int ret = 0;
-+	return ret;
-+}
 +
 +#if 0
 +static struct zl10353_config saa716x_averhc82_zl10353_config = {
@@ -6212,7 +8498,6 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_hybrid.c v4l-dvb-pa
 +	.model_name		= SAA716x_MODEL_AVERMEDIA_HC82,
 +	.dev_type		= SAA716x_DEV_AVERMEDIA_HC82,
 +	.boot_mode		= SAA716x_EXT_BOOT,
-+	.load_config		= &load_config_averhc82,
 +	.adapters		= 1,
 +	.frontend_attach	= saa716x_averhc82_frontend_attach,
 +	.irq_handler		= saa716x_hybrid_pci_irq,
@@ -6221,12 +8506,6 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_hybrid.c v4l-dvb-pa
 +
 +#define SAA716x_MODEL_AVERMEDIA_H788	"Avermedia H788"
 +#define SAA716x_DEV_AVERMEDIA_H788	"DVB-T + Analaog"
-+
-+static int load_config_averh788(struct saa716x_dev *saa716x)
-+{
-+	int ret = 0;
-+	return ret;
-+}
 +
 +static int saa716x_averh88_frontend_attach(struct saa716x_adapter *adapter, int count)
 +{
@@ -6242,7 +8521,6 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_hybrid.c v4l-dvb-pa
 +	.model_name		= SAA716x_MODEL_AVERMEDIA_H788,
 +	.dev_type		= SAA716x_DEV_AVERMEDIA_H788,
 +	.boot_mode		= SAA716x_EXT_BOOT,
-+	.load_config		= &load_config_averh788,
 +	.adapters		= 1,
 +	.frontend_attach	= saa716x_averh88_frontend_attach,
 +	.irq_handler		= saa716x_hybrid_pci_irq,
@@ -6285,7 +8563,7 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_hybrid.c v4l-dvb-pa
 +MODULE_LICENSE("GPL");
 diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_hybrid.h v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_hybrid.h
 --- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_hybrid.h	1970-01-01 01:00:00.000000000 +0100
-+++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_hybrid.h	2011-06-05 10:13:46.491993234 +0200
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_hybrid.h	2011-11-14 23:52:58.172789171 +0100
 @@ -0,0 +1,11 @@
 +#ifndef __SAA716x_HYBRID_H
 +#define __SAA716x_HYBRID_H
@@ -6300,7 +8578,7 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_hybrid.h v4l-dvb-pa
 +#endif /* __SAA716x_HYBRID_H */
 diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_i2c.c v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_i2c.c
 --- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_i2c.c	1970-01-01 01:00:00.000000000 +0100
-+++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_i2c.c	2011-06-05 10:13:46.491993234 +0200
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_i2c.c	2011-11-14 23:52:58.172789171 +0100
 @@ -0,0 +1,588 @@
 +#include <linux/delay.h>
 +
@@ -6892,7 +9170,7 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_i2c.c v4l-dvb-patch
 +EXPORT_SYMBOL_GPL(saa716x_i2c_exit);
 diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_i2c.h v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_i2c.h
 --- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_i2c.h	1970-01-01 01:00:00.000000000 +0100
-+++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_i2c.h	2011-06-05 10:13:46.491993234 +0200
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_i2c.h	2011-11-14 23:52:58.172789171 +0100
 @@ -0,0 +1,45 @@
 +#ifndef __SAA716x_I2C_H
 +#define __SAA716x_I2C_H
@@ -6941,7 +9219,7 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_i2c.h v4l-dvb-patch
 +#endif /* __SAA716x_I2C_H */
 diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_i2c_reg.h v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_i2c_reg.h
 --- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_i2c_reg.h	1970-01-01 01:00:00.000000000 +0100
-+++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_i2c_reg.h	2011-06-05 10:13:46.491993234 +0200
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_i2c_reg.h	2011-11-14 23:52:58.172789171 +0100
 @@ -0,0 +1,145 @@
 +#ifndef __SAA716x_I2C_REG_H
 +#define __SAA716x_I2C_REG_H
@@ -7090,7 +9368,7 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_i2c_reg.h v4l-dvb-p
 +#endif /* __SAA716x_I2C_REG_H */
 diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_mod.h v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_mod.h
 --- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_mod.h	1970-01-01 01:00:00.000000000 +0100
-+++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_mod.h	2011-06-05 10:13:46.491993234 +0200
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_mod.h	2011-11-14 23:52:58.172789171 +0100
 @@ -0,0 +1,50 @@
 +#ifndef __SAA716x_MOD_H
 +#define __SAA716x_MOD_H
@@ -7144,7 +9422,7 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_mod.h v4l-dvb-patch
 +#endif /* __SAA716x_MOD_H */
 diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_msi.c v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_msi.c
 --- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_msi.c	1970-01-01 01:00:00.000000000 +0100
-+++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_msi.c	2011-06-05 10:13:46.491993234 +0200
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_msi.c	2011-11-14 23:52:58.172789171 +0100
 @@ -0,0 +1,479 @@
 +#include <linux/delay.h>
 +
@@ -7627,7 +9905,7 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_msi.c v4l-dvb-patch
 +}
 diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_msi.h v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_msi.h
 --- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_msi.h	1970-01-01 01:00:00.000000000 +0100
-+++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_msi.h	2011-06-05 10:13:46.491993234 +0200
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_msi.h	2011-11-14 23:52:58.172789171 +0100
 @@ -0,0 +1,87 @@
 +#ifndef __SAA716x_MSI_H
 +#define __SAA716x_MSI_H
@@ -7718,7 +9996,7 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_msi.h v4l-dvb-patch
 +#endif /* __SAA716x_MSI_H */
 diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_msi_reg.h v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_msi_reg.h
 --- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_msi_reg.h	1970-01-01 01:00:00.000000000 +0100
-+++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_msi_reg.h	2011-06-05 10:13:46.491993234 +0200
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_msi_reg.h	2011-11-14 23:52:58.172789171 +0100
 @@ -0,0 +1,143 @@
 +#ifndef __SAA716x_MSI_REG_H
 +#define __SAA716x_MSI_REG_H
@@ -7865,7 +10143,7 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_msi_reg.h v4l-dvb-p
 +#endif /* __SAA716x_MSI_REG_H */
 diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_pci.c v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_pci.c
 --- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_pci.c	1970-01-01 01:00:00.000000000 +0100
-+++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_pci.c	2011-06-05 10:13:46.491993234 +0200
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_pci.c	2011-11-14 23:52:58.172789171 +0100
 @@ -0,0 +1,275 @@
 +#include <asm/io.h>
 +#include <asm/pgtable.h>
@@ -8144,7 +10422,7 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_pci.c v4l-dvb-patch
 +MODULE_LICENSE("GPL");
 diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_phi.c v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_phi.c
 --- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_phi.c	1970-01-01 01:00:00.000000000 +0100
-+++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_phi.c	2011-06-05 10:13:46.491993234 +0200
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_phi.c	2011-11-14 23:52:58.172789171 +0100
 @@ -0,0 +1,152 @@
 +#include <linux/kernel.h>
 +
@@ -8300,7 +10578,7 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_phi.c v4l-dvb-patch
 +EXPORT_SYMBOL_GPL(saa716x_phi_write_fifo);
 diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_phi.h v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_phi.h
 --- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_phi.h	1970-01-01 01:00:00.000000000 +0100
-+++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_phi.h	2011-06-05 10:13:46.491993234 +0200
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_phi.h	2011-11-14 23:52:58.172789171 +0100
 @@ -0,0 +1,39 @@
 +#ifndef __SAA716x_PHI_H
 +#define __SAA716x_PHI_H
@@ -8343,7 +10621,7 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_phi.h v4l-dvb-patch
 +#endif /* __SAA716x_PHI_H */
 diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_phi_reg.h v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_phi_reg.h
 --- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_phi_reg.h	1970-01-01 01:00:00.000000000 +0100
-+++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_phi_reg.h	2011-06-05 10:13:46.491993234 +0200
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_phi_reg.h	2011-11-14 23:52:58.172789171 +0100
 @@ -0,0 +1,100 @@
 +#ifndef __SAA716x_PHI_REG_H
 +#define __SAA716x_PHI_REG_H
@@ -8447,7 +10725,204 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_phi_reg.h v4l-dvb-p
 +#endif /* __SAA716x_PHI_REG_H */
 diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_priv.h v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_priv.h
 --- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_priv.h	1970-01-01 01:00:00.000000000 +0100
-+++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_priv.h	2011-06-05 10:13:46.491993234 +0200
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_priv.h	2011-11-14 23:52:58.172789171 +0100
+@@ -0,0 +1,193 @@
++#ifndef __SAA716x_PRIV_H
++#define __SAA716x_PRIV_H
++
++#include <linux/module.h>
++#include <linux/moduleparam.h>
++#include <linux/kernel.h>
++#include <linux/pci.h>
++#include <linux/mutex.h>
++
++#include <linux/pci.h>
++#include <linux/ioport.h>
++#include <linux/i2c.h>
++#include "saa716x_i2c.h"
++#include "saa716x_boot.h"
++#include "saa716x_cgu.h"
++#include "saa716x_dma.h"
++#include "saa716x_fgpi.h"
++
++#include "dvbdev.h"
++#include "dvb_demux.h"
++#include "dmxdev.h"
++#include "dvb_frontend.h"
++#include "dvb_net.h"
++
++#define SAA716x_ERROR		0
++#define SAA716x_NOTICE		1
++#define SAA716x_INFO		2
++#define SAA716x_DEBUG		3
++
++#define SAA716x_DEV		(saa716x)->num
++#define SAA716x_VERBOSE		(saa716x)->verbose
++#define SAA716x_MAX_ADAPTERS	4
++
++#define dprintk(__x, __y, __fmt, __arg...) do {								\
++	if (__y) {											\
++		if	((SAA716x_VERBOSE > SAA716x_ERROR) && (SAA716x_VERBOSE > __x))			\
++			printk(KERN_ERR "%s (%d): " __fmt "\n" , __func__ , SAA716x_DEV , ##__arg);	\
++		else if	((SAA716x_VERBOSE > SAA716x_NOTICE) && (SAA716x_VERBOSE > __x))			\
++			printk(KERN_NOTICE "%s (%d): " __fmt "\n" , __func__ , SAA716x_DEV , ##__arg);	\
++		else if ((SAA716x_VERBOSE > SAA716x_INFO) && (SAA716x_VERBOSE > __x))			\
++			printk(KERN_INFO "%s (%d): " __fmt "\n" , __func__ , SAA716x_DEV , ##__arg);	\
++		else if ((SAA716x_VERBOSE > SAA716x_DEBUG) && (SAA716x_VERBOSE > __x))			\
++			printk(KERN_DEBUG "%s (%d): " __fmt "\n" , __func__ , SAA716x_DEV , ##__arg);	\
++	} else {											\
++		if (SAA716x_VERBOSE > __x)								\
++			printk(__fmt , ##__arg);							\
++	}												\
++} while(0)
++
++
++#define NXP_SEMICONDUCTOR	0x1131
++#define SAA7160			0x7160
++#define SAA7161			0x7161
++#define SAA7162			0x7162
++
++#define NXP_REFERENCE_BOARD	0x1131
++
++#define MAKE_ENTRY(__subven, __subdev, __chip, __configptr) {		\
++		.vendor		= NXP_SEMICONDUCTOR,			\
++		.device		= (__chip),				\
++		.subvendor	= (__subven),				\
++		.subdevice	= (__subdev),				\
++		.driver_data	= (unsigned long) (__configptr)		\
++}
++
++#define SAA716x_EPWR(__offst, __addr, __data)	writel((__data), (saa716x->mmio + (__offst + __addr)))
++#define SAA716x_EPRD(__offst, __addr)		readl((saa716x->mmio + (__offst + __addr)))
++
++#define SAA716x_RCWR(__offst, __addr, __data)	writel((__data), (saa716x->mmio + (__offst + __addr)))
++#define SAA716x_RCRD(__offst, __addr)		readl((saa716x->mmio + (__offst + __addr)))
++
++
++#define SAA716x_MSI_MAX_VECTORS			16
++
++struct saa716x_msix_entry {
++	int vector;
++	u8 desc[32];
++	irqreturn_t (*handler)(int irq, void *dev_id);
++};
++
++struct saa716x_dev;
++struct saa716x_adapter;
++struct saa716x_spi_config;
++
++struct saa716x_adap_config {
++	u32				ts_port;
++	void				(*worker)(unsigned long);
++};
++
++struct saa716x_config {
++	char				*model_name;
++	char				*dev_type;
++
++	enum saa716x_boot_mode		boot_mode;
++
++	int				adapters;
++	int				frontends;
++
++	int (*frontend_attach)(struct saa716x_adapter *adapter, int count);
++	irqreturn_t (*irq_handler)(int irq, void *dev_id);
++
++	struct saa716x_adap_config	adap_config[SAA716x_MAX_ADAPTERS];
++	enum saa716x_i2c_rate		i2c_rate;
++};
++
++struct saa716x_adapter {
++	struct dvb_adapter		dvb_adapter;
++	struct dvb_frontend		*fe;
++	struct dvb_demux		demux;
++	struct dmxdev			dmxdev;
++	struct dmx_frontend		fe_hw;
++	struct dmx_frontend		fe_mem;
++	struct dvb_net			dvb_net;
++
++	struct saa716x_dev		*saa716x;
++
++	u8				feeds;
++	u8				count;
++};
++
++struct saa716x_dev {
++	struct saa716x_config		*config;
++	struct pci_dev			*pdev;
++
++	int				num; /* device count */
++	int				verbose;
++
++	u8 				revision;
++
++	/* PCI */
++	void __iomem			*mmio;
++
++#define MODE_INTA	0
++#define MODE_MSI	1
++#define MODE_MSI_X	2
++	u8				int_type;
++
++	struct msix_entry		msix_entries[SAA716x_MSI_MAX_VECTORS];
++	struct saa716x_msix_entry	saa716x_msix_handler[56];
++	u8				handlers; /* no. of active handlers */
++
++	/* I2C */
++	struct saa716x_i2c		i2c[2];
++	u32				i2c_rate; /* init time */
++	u32				I2C_DEV[2];
++
++	struct saa716x_spi_state	*saa716x_spi;
++	struct saa716x_spi_config	spi_config;
++
++	struct saa716x_adapter		saa716x_adap[SAA716x_MAX_ADAPTERS];
++	struct mutex			adap_lock;
++	struct saa716x_cgu		cgu;
++
++	spinlock_t			gpio_lock;
++	/* DMA */
++
++	struct saa716x_fgpi_stream_port	fgpi[4];
++
++	u32				id_offst;
++	u32				id_len;
++	void				*priv;
++
++	/* remote control */
++	void				*ir_priv;
++};
++
++/* PCI */
++extern int saa716x_pci_init(struct saa716x_dev *saa716x);
++extern void saa716x_pci_exit(struct saa716x_dev *saa716x);
++
++/* MSI */
++extern int saa716x_msi_init(struct saa716x_dev *saa716x);
++extern void saa716x_msi_exit(struct saa716x_dev *saa716x);
++extern void saa716x_msiint_disable(struct saa716x_dev *saa716x);
++
++/* DMA */
++extern int saa716x_dma_init(struct saa716x_dev *saa716x);
++extern void saa716x_dma_exit(struct saa716x_dev *saa716x);
++
++/* AUDIO */
++extern int saa716x_audio_init(struct saa716x_dev *saa716x);
++extern void saa716x_audio_exit(struct saa716x_dev *saa716x);
++
++/* Boot */
++extern int saa716x_core_boot(struct saa716x_dev *saa716x);
++extern int saa716x_jetpack_init(struct saa716x_dev *saa716x);
++
++/* Remote control */
++extern int saa716x_ir_init(struct saa716x_dev *saa716x);
++extern void saa716x_ir_exit(struct saa716x_dev *saa716x);
++extern void saa716x_ir_handler(struct saa716x_dev *saa716x, u32 ir_cmd);
++
++#endif /* __SAA716x_PRIV_H */
+diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_priv.h.orig v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_priv.h.orig
+--- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_priv.h.orig	1970-01-01 01:00:00.000000000 +0100
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_priv.h.orig	2011-11-14 23:29:06.476839710 +0100
 @@ -0,0 +1,199 @@
 +#ifndef __SAA716x_PRIV_H
 +#define __SAA716x_PRIV_H
@@ -8650,7 +11125,7 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_priv.h v4l-dvb-patc
 +#endif /* __SAA716x_PRIV_H */
 diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_reg.h v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_reg.h
 --- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_reg.h	1970-01-01 01:00:00.000000000 +0100
-+++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_reg.h	2011-06-05 10:13:46.491993234 +0200
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_reg.h	2011-11-14 23:52:58.176789171 +0100
 @@ -0,0 +1,1279 @@
 +#ifndef __SAA716x_REG_H
 +#define __SAA716x_REG_H
@@ -9933,7 +12408,7 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_reg.h v4l-dvb-patch
 +#endif /* __SAA716x_REG_H */
 diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_rom.c v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_rom.c
 --- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_rom.c	1970-01-01 01:00:00.000000000 +0100
-+++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_rom.c	2011-06-05 10:13:46.501993234 +0200
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_rom.c	2011-11-14 23:52:58.176789171 +0100
 @@ -0,0 +1,1018 @@
 +#include <linux/kernel.h>
 +#include <linux/string.h>
@@ -10955,7 +13430,7 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_rom.c v4l-dvb-patch
 +EXPORT_SYMBOL_GPL(saa716x_eeprom_data);
 diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_rom.h v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_rom.h
 --- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_rom.h	1970-01-01 01:00:00.000000000 +0100
-+++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_rom.h	2011-06-05 10:13:46.501993234 +0200
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_rom.h	2011-11-14 23:52:58.176789171 +0100
 @@ -0,0 +1,253 @@
 +#ifndef __SAA716x_ROM_H
 +#define __SAA716x_ROM_H
@@ -11212,7 +13687,7 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_rom.h v4l-dvb-patch
 +#endif /* __SAA716x_ROM_H */
 diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_spi.c v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_spi.c
 --- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_spi.c	1970-01-01 01:00:00.000000000 +0100
-+++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_spi.c	2011-06-05 10:13:46.501993234 +0200
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_spi.c	2011-11-14 23:52:58.176789171 +0100
 @@ -0,0 +1,313 @@
 +#include <linux/kernel.h>
 +#include <linux/device.h>
@@ -11529,7 +14004,7 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_spi.c v4l-dvb-patch
 +
 diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_spi.h v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_spi.h
 --- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_spi.h	1970-01-01 01:00:00.000000000 +0100
-+++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_spi.h	2011-06-05 10:13:46.501993234 +0200
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_spi.h	2011-11-14 23:52:58.176789171 +0100
 @@ -0,0 +1,23 @@
 +#ifndef __SAA716x_SPI_H
 +#define __SAA716x_SPI_H
@@ -11556,7 +14031,7 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_spi.h v4l-dvb-patch
 +#endif /* __SAA716x_SPI_H */
 diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_spi_reg.h v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_spi_reg.h
 --- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_spi_reg.h	1970-01-01 01:00:00.000000000 +0100
-+++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_spi_reg.h	2011-06-05 10:13:46.501993234 +0200
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_spi_reg.h	2011-11-14 23:52:58.176789171 +0100
 @@ -0,0 +1,27 @@
 +#ifndef __SAA716x_SPI_REG_H
 +#define __SAA716x_SPI_REG_H
@@ -11587,7 +14062,7 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_spi_reg.h v4l-dvb-p
 +#endif /* __SAA716x_SPI_REG_H */
 diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_vip.c v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_vip.c
 --- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_vip.c	1970-01-01 01:00:00.000000000 +0100
-+++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_vip.c	2011-06-05 10:13:46.501993234 +0200
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_vip.c	2011-11-14 23:52:58.176789171 +0100
 @@ -0,0 +1,23 @@
 +#include <linux/kernel.h>
 +
@@ -11614,7 +14089,7 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_vip.c v4l-dvb-patch
 +EXPORT_SYMBOL_GPL(saa716x_vip_disable);
 diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_vip.h v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_vip.h
 --- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_vip.h	1970-01-01 01:00:00.000000000 +0100
-+++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_vip.h	2011-06-05 10:13:46.501993234 +0200
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_vip.h	2011-11-14 23:52:58.176789171 +0100
 @@ -0,0 +1,9 @@
 +#ifndef __SAA716x_VIP_H
 +#define __SAA716x_VIP_H
@@ -11627,7 +14102,7 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_vip.h v4l-dvb-patch
 +#endif /* __SAA716x_VIP_H */
 diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_vip_reg.h v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_vip_reg.h
 --- v4l-dvb/linux/drivers/media/common/saa716x/saa716x_vip_reg.h	1970-01-01 01:00:00.000000000 +0100
-+++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_vip_reg.h	2011-06-05 10:13:46.501993234 +0200
++++ v4l-dvb-patched/linux/drivers/media/common/saa716x/saa716x_vip_reg.h	2011-11-14 23:52:58.176789171 +0100
 @@ -0,0 +1,127 @@
 +#ifndef __SAA716x_VIP_REG_H
 +#define __SAA716x_VIP_REG_H
@@ -11756,95 +14231,3 @@ diff -Nur v4l-dvb/linux/drivers/media/common/saa716x/saa716x_vip_reg.h v4l-dvb-p
 +#define VI_PWR_DWN			(0x00000001 << 31)
 +
 +#endif /* __SAA716x_VIP_REG_H */
-diff -Nur v4l-dvb/linux/drivers/media/Kconfig v4l-dvb-patched/linux/drivers/media/Kconfig
---- v4l-dvb/linux/drivers/media/Kconfig	2011-05-23 13:56:52.000000000 +0200
-+++ v4l-dvb-patched/linux/drivers/media/Kconfig	2011-06-05 10:16:41.961993160 +0200
-@@ -114,4 +114,6 @@
- 
- source "drivers/media/dvb/Kconfig"
- 
-+source "drivers/media/common/saa716x/Kconfig"
-+
- endif # MEDIA_SUPPORT
-diff -Nur v4l-dvb/linux/include/linux/dvb/osd.h v4l-dvb-patched/linux/include/linux/dvb/osd.h
---- v4l-dvb/linux/include/linux/dvb/osd.h	2011-05-23 13:56:54.000000000 +0200
-+++ v4l-dvb-patched/linux/include/linux/dvb/osd.h	2011-06-05 10:28:45.441992858 +0200
-@@ -141,4 +141,20 @@
- #define OSD_SEND_CMD            _IOW('o', 160, osd_cmd_t)
- #define OSD_GET_CAPABILITY      _IOR('o', 161, osd_cap_t)
- 
-+typedef struct osd_raw_cmd_s {
-+	const void __user *cmd_data;
-+	int cmd_len;
-+	void __user *result_data;
-+	int result_len;
-+} osd_raw_cmd_t;
-+
-+typedef struct osd_raw_data_s {
-+	const void __user *data_buffer;
-+	int data_length;
-+	int data_handle;
-+} osd_raw_data_t;
-+
-+#define OSD_RAW_CMD            _IOWR('o', 162, osd_raw_cmd_t)
-+#define OSD_RAW_DATA           _IOWR('o', 163, osd_raw_data_t)
-+
- #endif
---- a/linux/drivers/media/common/saa716x/saa716x_ff_main.c	Fri Jun 03 18:21:32 2011 +0200
-+++ b/linux/drivers/media/common/saa716x/saa716x_ff_main.c	Sun Aug 21 17:11:06 2011 +0200
-@@ -1540,8 +1540,8 @@
- 
- 	.ts1_mode		= STV090x_TSMODE_SERIAL_CONTINUOUS,
- 	.ts2_mode		= STV090x_TSMODE_SERIAL_CONTINUOUS,
--	.ts1_clk		= 90000000,
--	.ts2_clk		= 90000000,
-+	.ts1_clk		= 135000000,
-+	.ts2_clk		= 135000000,
- 
- 	.repeater_level		= STV090x_RPTLEVEL_16,
-
---- a/linux/drivers/media/common/saa716x/saa716x_ff.h	Sun Aug 21 17:11:06 2011 +0200
-+++ b/linux/drivers/media/common/saa716x/saa716x_ff.h	Sun Aug 21 17:18:00 2011 +0200
-@@ -135,7 +135,6 @@
- 	u64			audio_pts;
- 	u64			video_pts;
- 	u64			current_stc;
--	u32			remote_event;
- 
- 	u32			int_count_enable;
- 	u32			total_int_count;
---- a/linux/drivers/media/common/saa716x/saa716x_ff_main.c	Sun Aug 21 17:11:06 2011 +0200
-+++ b/linux/drivers/media/common/saa716x/saa716x_ff_main.c	Sun Aug 21 17:18:00 2011 +0200
-@@ -1426,18 +1426,25 @@
- 
- 		if (phiISR & ISR_REMOTE_EVENT_MASK) {
- 			u8 data[4];
-+			u32 remote_event;
- 
- 			saa716x_phi_read(saa716x, ADDR_REMOTE_EVENT, data, 4);
--			sti7109->remote_event = (data[3] << 24)
--					      | (data[2] << 16)
--					      | (data[1] << 8)
--					      | (data[0]);
-+			remote_event = (data[3] << 24)
-+				     | (data[2] << 16)
-+				     | (data[1] << 8)
-+				     | (data[0]);
-+			memset(data, 0, sizeof(data));
-+			saa716x_phi_write(saa716x, ADDR_REMOTE_EVENT, data, 4);
- 
- 			phiISR &= ~ISR_REMOTE_EVENT_MASK;
- 			SAA716x_EPWR(PHI_1, FPGA_ADDR_EMI_ICLR, ISR_REMOTE_EVENT_MASK);
- 
--			dprintk(SAA716x_INFO, 1, "REMOTE EVENT: %u", sti7109->remote_event);
--			saa716x_ir_handler(saa716x, sti7109->remote_event);
-+			if (remote_event == 0) {
-+				dprintk(SAA716x_ERROR, 1, "REMOTE EVENT: %u ignored", remote_event);
-+			} else {
-+				dprintk(SAA716x_INFO, 1, "REMOTE EVENT: %u", remote_event);
-+				saa716x_ir_handler(saa716x, remote_event);
-+			}
- 		}
- 
- 		if (phiISR & ISR_DVO_FORMAT_MASK) {
-
