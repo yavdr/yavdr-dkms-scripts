@@ -68,7 +68,7 @@ cd ..
 echo "s2-liplianin: Update ended. Now: $VERSION"
 }
 
-KERNEL=2.6.38-11-generic
+KERNEL=2.6.38-12-generic
 RELEASE=natty
 if [ -z "$KERNEL" ]; then
     if [ ! -z "$2" ]; then
