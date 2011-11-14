@@ -124,6 +124,10 @@ AUTOINSTALL=y
 MAKE[0]="make -j5 VER=\$kernelver"
 EOF
 
+if [ "$REPO" = "linux-tbs-drivers" ]; then 
+   echo "CLEAN=\"make clean; if arch | grep -q 64 ; then ./v4l/tbs-x86_64.sh ; elif  echo \$kernelver | grep -q ^3\..* ; then  ./v4l/tbs-x86_r3.sh ; else ./v4l/tbs-x86.sh ; fi\"" >> dkms.conf.$REPO
+fi
+
 PATCHCOUNT=0
 for PATCH in ${PATCHES[@]} ; do
 echo "PATCH[$PATCHCOUNT]=`basename $PATCH`" >> dkms.conf.$REPO
@@ -142,6 +146,18 @@ if [ ! -d temp-build ]; then
             patch -d temp-build -p1 < $PATCH
         fi
     done
+    if [ "$REPO" = "linux-tbs-drivers" ]; then
+       cd temp-build
+       if arch | grep -q 64 ; then 
+          ./v4l/tbs-x86_64.sh  
+       elif echo $KERNEL | grep -q "^3\..*" ;then 
+          ./v4l/tbs-x86_r3.sh 
+       else 
+          ./v4l/tbs-x86.sh 
+       fi
+       cd ..
+    fi
+
     make -j5 -C temp-build KERNELRELEASE=$KERNEL VER=$KERNEL
 fi
 
@@ -151,11 +167,23 @@ cd temp-build
 i=0
 for f in `find -name *.ko`; do
     M=`basename $f .ko`
-    echo "BUILT_MODULE_NAME[$i]=$M" >> ../dkms.conf.$REPO
-    echo "BUILT_MODULE_LOCATION[$i]=`dirname $f`" >> ../dkms.conf.$REPO
-    echo "DEST_MODULE_LOCATION[$i]=/updates/dkms" >> ../dkms.conf.$REPO
-    ((i=i+1))
+    if [ "$M" = "v4l2-compat-ioctl32" ]; then 
+       COMPAT=yes
+    else
+       echo "BUILT_MODULE_NAME[$i]=$M" >> ../dkms.conf.$REPO
+       echo "BUILT_MODULE_LOCATION[$i]=`dirname $f`" >> ../dkms.conf.$REPO
+       echo "DEST_MODULE_LOCATION[$i]=/updates/dkms" >> ../dkms.conf.$REPO
+       ((i=i+1))
+    fi 
 done
+
+if [ "$COMPAT" = "yes" ]; then 
+   echo "if arch | grep -q 64 ; then" >> ../dkms.conf.$REPO
+   echo "BUILT_MODULE_NAME[$i]=v4l2-compat-ioctl32" >> ../dkms.conf.$REPO
+   echo "BUILT_MODULE_LOCATION[$i]=`dirname $f`" >> ../dkms.conf.$REPO
+   echo "DEST_MODULE_LOCATION[$i]=/updates/dkms" >> ../dkms.conf.$REPO
+   echo "fi" >> ../dkms.conf.$REPO
+fi
 cd ..
 
 # create temporary source and dkms trees
