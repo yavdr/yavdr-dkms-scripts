@@ -12,11 +12,11 @@
 # and adapt to the kernel you like to compile for
 ########################
 
-update-v4l () {
-echo "v4l: Update started"
+update-linux-media () {
+echo "linux-media: Update started"
 # BEWARE this is more a notepad to remamber what has to be done, if it works you are lucky !!!
-if [ -d updates/v4l -a -d updates/media_build ]; then
-    cd updates/v4l
+if [ -d updates/linux-media -a -d updates/media_build ]; then
+    cd updates/linux-media
     git pull
     cd ..
     cd media_build
@@ -24,8 +24,8 @@ if [ -d updates/v4l -a -d updates/media_build ]; then
     cd ..
 else
     cd updates/
-    git clone git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux-2.6.git v4l
-    cd v4l
+    git clone git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux-2.6.git linux-media
+    cd linux-media
     git remote add linuxtv git://linuxtv.org/media_tree.git
     git remote update
     git checkout -b v3.3 remotes/linuxtv/staging/for_v3.3
@@ -34,20 +34,20 @@ else
 fi
 
 cd media_build/linux
-make tar DIR=../../v4l &> /dev/null
+make tar DIR=../../linux-media &> /dev/null
 make untar &> /dev/null
 cd ..
-rm -rf ../../repositories/v4l
-mkdir -p ../../repositories/v4l
-tar c * --exclude=".hg" --exclude ".git" | tar x -C ../../repositories/v4l
-cd ../v4l
+rm -rf ../../repositories/linux-media
+mkdir -p ../../repositories/linux-media
+tar c * --exclude=".hg" --exclude ".git" | tar x -C ../../repositories/linux-media
+cd ../linux-media
 VERSION=git`git rev-list --all | wc -l`
 cd ../media_build
 VERSION=$VERSION.`git rev-list --all | wc -l`
 cd ../..
-git rev-list --max-count=1 HEAD > repositories/v4l.revision
-echo $VERSION > repositories/v4l.version
-echo "v4l: Update ended. Now: $VERSION"
+git rev-list --max-count=1 HEAD > repositories/linux-media.revision
+echo $VERSION > repositories/linux-media.version
+echo "linux-media: Update ended. Now: $VERSION"
 }
 
 update-s2-liplianin () {
@@ -83,7 +83,7 @@ if [ -z "$KERNEL" ]; then
 fi
 
 case $1 in
-   s2-liplianin|v4l|linux-tbs-drivers)
+   s2-liplianin|linux-media|linux-tbs-drivers)
            REPO=$1
 	   ;;
    clean)
@@ -97,7 +97,7 @@ case $1 in
            echo -n "BEWARE: the code to do this has more note pad quality. Stop here "
            read BLA
            mkdir -p updates
-           update-v4l
+           update-linux-media
            update-s2-liplianin
            exit 0
            ;;
@@ -112,7 +112,7 @@ PATCHES=( `find patches/$REPO/* -name '*.patch' | tac` )
 fi
 
 if [ -e "config-$REPO" ]; then
-    cp config-$REPO repositories/$REPO/v4l/.config
+    cp config-$REPO repositories/$REPO/linux-media/.config
 fi
 
 # generate changelog
