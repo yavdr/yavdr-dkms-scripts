@@ -13,10 +13,10 @@
 ########################
 
 update-v4l () {
-echo "v4l-dvb: Update started"
+echo "v4l: Update started"
 # BEWARE this is more a notepad to remamber what has to be done, if it works you are lucky !!!
-if [ -d updates/v4l-dvb -a -d updates/media_build ]; then
-    cd updates/v4l-dvb
+if [ -d updates/v4l -a -d updates/media_build ]; then
+    cd updates/v4l
     git pull
     cd ..
     cd media_build
@@ -24,29 +24,30 @@ if [ -d updates/v4l-dvb -a -d updates/media_build ]; then
     cd ..
 else
     cd updates/
-    git clone git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux-2.6.git v4l-dvb
-    cd v4l-dvb
+    git clone git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux-2.6.git v4l
+    cd v4l
     git remote add linuxtv git://linuxtv.org/media_tree.git
     git remote update
-    git checkout -b media-master remotes/linuxtv/staging/for_v3.3
+    git checkout -b v3.3 remotes/linuxtv/staging/for_v3.3
     cd ..
     git clone git://linuxtv.org/media_build.git
 fi
 
 cd media_build/linux
-make tar DIR=../../v4l-dvb &> /dev/null
+make tar DIR=../../v4l &> /dev/null
 make untar &> /dev/null
 cd ..
-rm -rf ../../repositories/v4l-dvb
-mkdir -p ../../repositories/v4l-dvb
-tar c * --exclude=".hg" --exclude ".git" | tar x -C ../../repositories/v4l-dvb
-cd ../v4l-dvb
+rm -rf ../../repositories/v4l
+mkdir -p ../../repositories/v4l
+tar c * --exclude=".hg" --exclude ".git" | tar x -C ../../repositories/v4l
+cd ../v4l
 VERSION=git`git rev-list --all | wc -l`
 cd ../media_build
 VERSION=$VERSION.`git rev-list --all | wc -l`
 cd ../..
-echo $VERSION~$RELEASE > repositories/v4l-dvb.version
-echo "v4l-dvb: Update ended. Now: $VERSION"
+git rev-list --max-count=1 HEAD > repositories/v4l.revision
+echo $VERSION~$RELEASE > repositories/v4l.version
+echo "v4l: Update ended. Now: $VERSION"
 }
 
 update-s2-liplianin () {
@@ -81,7 +82,7 @@ if [ -z "$KERNEL" ]; then
 fi
 
 case $1 in
-   s2-liplianin|v4l-dvb|linux-tbs-drivers)
+   s2-liplianin|v4l|linux-tbs-drivers)
            REPO=$1
 	   ;;
    clean)
@@ -186,7 +187,7 @@ if [ "$COMPAT" = "yes" ]; then
 fi
 cd ..
 
-# create temporary source and dkms trees
+# create temporary s ource and dkms trees
 srctree=`mktemp -d --tmpdir=$PWD`
 dkmstree=`mktemp -d --tmpdir=$PWD`
 cp /var/lib/dkms/dkms_dbversion $dkmstree
