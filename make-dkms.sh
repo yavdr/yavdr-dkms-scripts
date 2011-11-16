@@ -112,7 +112,7 @@ PATCHES=( `find patches/$REPO/* -name '*.patch' | tac` )
 fi
 
 if [ -e "config-$REPO" ]; then
-    cp config-$REPO repositories/$REPO/linux-media/.config
+    cp config-$REPO repositories/$REPO/v4l/.config
 fi
 
 # generate changelog
