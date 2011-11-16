@@ -46,7 +46,7 @@ cd ../media_build
 VERSION=$VERSION.`git rev-list --all | wc -l`
 cd ../..
 git rev-list --max-count=1 HEAD > repositories/v4l.revision
-echo $VERSION~$RELEASE > repositories/v4l.version
+echo $VERSION > repositories/v4l.version
 echo "v4l: Update ended. Now: $VERSION"
 }
 
@@ -64,7 +64,8 @@ fi
 rm -rf ../repositories/s2-liplianin
 tar c s2-liplianin --exclude=".hg" --exclude ".git" | tar x -C ../repositories/
 VERSION=`hg identify -n s2-liplianin | cut -d'+' -f1`
-echo $VERSION~$RELEASE > ../repositories/s2-liplianin.version
+echo $VERSION > ../repositories/s2-liplianin.version
+hg id -i s2-liplianin > ../repositories/s2-liplianin.revision
 cd ..
 echo "s2-liplianin: Update ended. Now: $VERSION"
 }
@@ -105,7 +106,7 @@ case $1 in
            ;;
 esac
 
-VERSION=0~`/bin/date +%0Y%0m%0d`.$(cat repositories/$REPO.version)
+VERSION=0~`/bin/date +%0Y%0m%0d`.$(cat repositories/$REPO.version)~$RELEASE
 if find patches/$REPO/*patch &> /dev/null ; then
 PATCHES=( `find patches/$REPO/* -name '*.patch' | tac` )
 fi
