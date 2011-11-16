@@ -115,7 +115,7 @@ if [ -e "config-$REPO" ]; then
 fi
 
 # generate changelog
-cat changelog | sed "s/RELEASE/$RELEASE/" | sed "s/DEBEMAIL/$DEBEMAIL/" | sed "s/DEBFULLNAME/$DEBFULLNAME/" > templates/$REPO/debian/changelog
+cat templates/changelog | sed "s/RELEASE/$RELEASE/" | sed "s/DEBEMAIL/$DEBEMAIL/" | sed "s/DEBFULLNAME/$DEBFULLNAME/" > templates/$REPO/debian/changelog
 
 # generate dkms.conf
 cat <<EOF > dkms.conf.$REPO
