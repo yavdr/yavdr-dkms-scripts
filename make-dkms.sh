@@ -83,7 +83,7 @@ if [ -z "$KERNEL" ]; then
 fi
 
 case $1 in
-   s2-liplianin|linux-media|linux-tbs-drivers)
+   s2-liplianin|linux-media|linux-media-tbs)
            REPO=$1
 	   ;;
    clean)
@@ -126,7 +126,7 @@ AUTOINSTALL=y
 MAKE[0]="make -j5 VER=\$kernelver"
 EOF
 
-if [ "$REPO" = "linux-tbs-drivers" ]; then 
+if [ "$REPO" = "linux-media-tbs" ]; then 
    echo "CLEAN=\"make clean; if arch | grep -q 64 ; then ./v4l/tbs-x86_64.sh ; elif  echo \$kernelver | grep -q ^3\..* ; then  ./v4l/tbs-x86_r3.sh ; else ./v4l/tbs-x86.sh ; fi\"" >> dkms.conf.$REPO
 fi
 
@@ -137,7 +137,7 @@ if [ -f "${PATCH}.match" ]; then
     echo "PATCH_MATCH[$PATCHCOUNT]=\"`cat ${PATCH}.match`\"" >> dkms.conf.$REPO
 fi
 PATCHCOUNT=$(( $PATCHCOUNT + 1 ))
-done 
+done
 
 # temporary build
 if [ ! -d temp-build ]; then
@@ -148,14 +148,14 @@ if [ ! -d temp-build ]; then
             patch -d temp-build -p1 < $PATCH
         fi
     done
-    if [ "$REPO" = "linux-tbs-drivers" ]; then
+    if [ "$REPO" = "linux-media-tbs" ]; then
        cd temp-build
-       if arch | grep -q 64 ; then 
-          ./v4l/tbs-x86_64.sh  
-       elif echo $KERNEL | grep -q "^3\..*" ;then 
-          ./v4l/tbs-x86_r3.sh 
-       else 
-          ./v4l/tbs-x86.sh 
+       if arch | grep -q 64 ; then
+          ./v4l/tbs-x86_64.sh
+       elif echo $KERNEL | grep -q "^3\..*" ;then
+          ./v4l/tbs-x86_r3.sh
+       else
+          ./v4l/tbs-x86.sh
        fi
        cd ..
     fi
