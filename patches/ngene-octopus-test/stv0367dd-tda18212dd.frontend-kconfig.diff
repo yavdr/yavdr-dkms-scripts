@@ -1,137 +1,27 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-US">
-<head>
-<link rel="icon" href="/hg/~endriss/media_build_experimental/static/hgicon.png" type="image/png" />
-<meta name="robots" content="index, nofollow" />
-<link rel="stylesheet" href="/hg/~endriss/media_build_experimental/static/style-paper.css" type="text/css" />
-
-<title>~endriss/media_build_experimental: b9dc0774297f experimental/stv0367dd-tda18212dd.frontend-kconfig.diff</title>
-</head>
-<body>
-
-<div class="container">
-<div class="menu">
-<div class="logo">
-<a href="http://mercurial.selenic.com/">
-<img src="/hg/~endriss/media_build_experimental/static/hglogo.png" alt="mercurial" /></a>
-</div>
-<ul>
-<li><a href="/hg/~endriss/media_build_experimental/shortlog/b9dc0774297f">log</a></li>
-<li><a href="/hg/~endriss/media_build_experimental/graph/b9dc0774297f">graph</a></li>
-<li><a href="/hg/~endriss/media_build_experimental/tags">tags</a></li>
-<li><a href="/hg/~endriss/media_build_experimental/branches">branches</a></li>
-</ul>
-<ul>
-<li><a href="/hg/~endriss/media_build_experimental/rev/b9dc0774297f">changeset</a></li>
-<li><a href="/hg/~endriss/media_build_experimental/file/b9dc0774297f/experimental/">browse</a></li>
-</ul>
-<ul>
-<li class="active">file</li>
-<li><a href="/hg/~endriss/media_build_experimental/file/tip/experimental/stv0367dd-tda18212dd.frontend-kconfig.diff">latest</a></li>
-<li><a href="/hg/~endriss/media_build_experimental/diff/b9dc0774297f/experimental/stv0367dd-tda18212dd.frontend-kconfig.diff">diff</a></li>
-<li><a href="/hg/~endriss/media_build_experimental/annotate/b9dc0774297f/experimental/stv0367dd-tda18212dd.frontend-kconfig.diff">annotate</a></li>
-<li><a href="/hg/~endriss/media_build_experimental/log/b9dc0774297f/experimental/stv0367dd-tda18212dd.frontend-kconfig.diff">file log</a></li>
-<li><a href="/hg/~endriss/media_build_experimental/raw-file/b9dc0774297f/experimental/stv0367dd-tda18212dd.frontend-kconfig.diff">raw</a></li>
-</ul>
-</div>
-
-<div class="main">
-<h2><a href="/hg/~endriss/media_build_experimental/">~endriss/media_build_experimental</a></h2>
-<h3>view experimental/stv0367dd-tda18212dd.frontend-kconfig.diff @ 23:b9dc0774297f</h3>
-
-<form class="search" action="/hg/~endriss/media_build_experimental/log">
-
-<p><input name="rev" id="search1" type="text" size="30" /></p>
-<div id="hint">find changesets by author, revision,
-files, or words in the commit message</div>
-</form>
-
-<div class="description">Disable USB_GSPCA as it breaks the build</div>
-
-<table id="changesetEntry">
-<tr>
- <th class="author">author</th>
- <td class="author">&#79;&#108;&#105;&#118;&#101;&#114;&#32;&#69;&#110;&#100;&#114;&#105;&#115;&#115;&#32;&#60;&#111;&#46;&#101;&#110;&#100;&#114;&#105;&#115;&#115;&#64;&#103;&#109;&#120;&#46;&#100;&#101;&#62;</td>
-</tr>
-<tr>
- <th class="date">date</th>
- <td class="date">Fri Nov 11 22:52:35 2011 +0100 (10 days ago)</td>
-</tr>
-<tr>
- <th class="author">parents</th>
- <td class="author"><a href="/hg/~endriss/media_build_experimental/file/78c66da5d501/experimental/stv0367dd-tda18212dd.frontend-kconfig.diff">78c66da5d501</a> </td>
-</tr>
-<tr>
- <th class="author">children</th>
- <td class="author"></td>
-</tr>
-
-</table>
-
-<div class="overflow">
-<div class="sourcefirst"> line source</div>
-
-<div class="parity0 source"><a href="#l1" id="l1">     1</a> --- linux/drivers/media/dvb/frontends/Kconfig	2011-09-24 05:45:14.000000000 +0200
-</div>
-<div class="parity1 source"><a href="#l2" id="l2">     2</a> +++ xxx/Kconfig	2011-10-23 20:10:37.000000000 +0200
-</div>
-<div class="parity0 source"><a href="#l3" id="l3">     3</a> @@ -70,6 +70,24 @@ config DVB_TDA18271C2DD
-</div>
-<div class="parity1 source"><a href="#l4" id="l4">     4</a>  
-</div>
-<div class="parity0 source"><a href="#l5" id="l5">     5</a>  	  Say Y when you want to support this tuner.
-</div>
-<div class="parity1 source"><a href="#l6" id="l6">     6</a>  
-</div>
-<div class="parity0 source"><a href="#l7" id="l7">     7</a> +config DVB_STV0367DD
-</div>
-<div class="parity1 source"><a href="#l8" id="l8">     8</a> +	tristate &quot;STV 0367 (DD)&quot;
-</div>
-<div class="parity0 source"><a href="#l9" id="l9">     9</a> +	depends on DVB_CORE &amp;&amp; I2C
-</div>
-<div class="parity1 source"><a href="#l10" id="l10">    10</a> +	default m if DVB_FE_CUSTOMISE
-</div>
-<div class="parity0 source"><a href="#l11" id="l11">    11</a> +	help
-</div>
-<div class="parity1 source"><a href="#l12" id="l12">    12</a> +	  STV 0367 DVB-C/T demodulator (Digital Devices driver).
-</div>
-<div class="parity0 source"><a href="#l13" id="l13">    13</a> +
-</div>
-<div class="parity1 source"><a href="#l14" id="l14">    14</a> +	  Say Y when you want to support this frontend.
-</div>
-<div class="parity0 source"><a href="#l15" id="l15">    15</a> +
-</div>
-<div class="parity1 source"><a href="#l16" id="l16">    16</a> +config DVB_TDA18212DD
-</div>
-<div class="parity0 source"><a href="#l17" id="l17">    17</a> +	tristate &quot;NXP TDA18212 silicon tuner (DD)&quot;
-</div>
-<div class="parity1 source"><a href="#l18" id="l18">    18</a> +	depends on DVB_CORE &amp;&amp; I2C
-</div>
-<div class="parity0 source"><a href="#l19" id="l19">    19</a> +	default m if DVB_FE_CUSTOMISE
-</div>
-<div class="parity1 source"><a href="#l20" id="l20">    20</a> +	help
-</div>
-<div class="parity0 source"><a href="#l21" id="l21">    21</a> +	  NXP TDA18212 silicon tuner (Digital Devices driver).
-</div>
-<div class="parity1 source"><a href="#l22" id="l22">    22</a> +
-</div>
-<div class="parity0 source"><a href="#l23" id="l23">    23</a> +	  Say Y when you want to support this tuner.
-</div>
-<div class="parity1 source"><a href="#l24" id="l24">    24</a> +
-</div>
-<div class="parity0 source"><a href="#l25" id="l25">    25</a>  comment &quot;DVB-S (satellite) frontends&quot;
-</div>
-<div class="parity1 source"><a href="#l26" id="l26">    26</a>  	depends on DVB_CORE
-</div>
-<div class="parity0 source"><a href="#l27" id="l27">    27</a>  
-</div>
-<div class="sourcelast"></div>
-</div>
-</div>
-</div>
-
-
-
-</body>
-</html>
-
+--- linux/drivers/media/dvb/frontends/Kconfig	2011-09-24 05:45:14.000000000 +0200
++++ xxx/Kconfig	2011-10-23 20:10:37.000000000 +0200
+@@ -70,6 +70,24 @@ config DVB_TDA18271C2DD
+ 
+ 	  Say Y when you want to support this tuner.
+ 
++config DVB_STV0367DD
++	tristate "STV 0367 (DD)"
++	depends on DVB_CORE && I2C
++	default m if DVB_FE_CUSTOMISE
++	help
++	  STV 0367 DVB-C/T demodulator (Digital Devices driver).
++
++	  Say Y when you want to support this frontend.
++
++config DVB_TDA18212DD
++	tristate "NXP TDA18212 silicon tuner (DD)"
++	depends on DVB_CORE && I2C
++	default m if DVB_FE_CUSTOMISE
++	help
++	  NXP TDA18212 silicon tuner (Digital Devices driver).
++
++	  Say Y when you want to support this tuner.
++
+ comment "DVB-S (satellite) frontends"
+ 	depends on DVB_CORE
+ 

@@ -1,6 +1,6 @@
 diff -Nur linux-media/linux/drivers/media/dvb/ddbridge/ddbridge-core.c linux-media-patched/linux/drivers/media/dvb/ddbridge/ddbridge-core.c
---- linux-media/linux/drivers/media/dvb/ddbridge/ddbridge-core.c	2011-11-22 22:05:56.601621612 +0100
-+++ linux-media-patched/linux/drivers/media/dvb/ddbridge/ddbridge-core.c	2011-11-22 22:05:57.797621630 +0100
+--- linux-media/linux/drivers/media/dvb/ddbridge/ddbridge-core.c	2011-11-22 22:54:30.037665330 +0100
++++ linux-media-patched/linux/drivers/media/dvb/ddbridge/ddbridge-core.c	2011-11-22 22:54:30.497665339 +0100
 @@ -36,7 +36,6 @@
  #include <linux/swab.h>
  #include <linux/vmalloc.h>
@@ -2593,15 +2593,9 @@ diff -Nur linux-media/linux/drivers/media/dvb/ddbridge/ddbridge-core.c linux-med
  }
  
  static __exit void module_exit_ddbridge(void)
-@@ -1719,4 +2712,4 @@
- MODULE_DESCRIPTION("Digital Devices PCIe Bridge");
- MODULE_AUTHOR("Ralph Metzler");
- MODULE_LICENSE("GPL");
--MODULE_VERSION("0.5");
-+MODULE_VERSION("0.8");
 diff -Nur linux-media/linux/drivers/media/dvb/ddbridge/ddbridge.h linux-media-patched/linux/drivers/media/dvb/ddbridge/ddbridge.h
---- linux-media/linux/drivers/media/dvb/ddbridge/ddbridge.h	2011-11-22 22:05:56.601621612 +0100
-+++ linux-media-patched/linux/drivers/media/dvb/ddbridge/ddbridge.h	2011-11-22 22:05:57.797621630 +0100
+--- linux-media/linux/drivers/media/dvb/ddbridge/ddbridge.h	2011-11-22 22:54:30.037665330 +0100
++++ linux-media-patched/linux/drivers/media/dvb/ddbridge/ddbridge.h	2011-11-22 22:54:30.497665339 +0100
 @@ -35,6 +35,7 @@
  #include <linux/dvb/video.h>
  #include <linux/dvb/audio.h>
@@ -2780,8 +2774,8 @@ diff -Nur linux-media/linux/drivers/media/dvb/ddbridge/ddbridge.h linux-media-pa
  
  #endif
 diff -Nur linux-media/linux/drivers/media/dvb/ddbridge/ddbridge-regs.h linux-media-patched/linux/drivers/media/dvb/ddbridge/ddbridge-regs.h
---- linux-media/linux/drivers/media/dvb/ddbridge/ddbridge-regs.h	2011-11-22 22:05:56.601621612 +0100
-+++ linux-media-patched/linux/drivers/media/dvb/ddbridge/ddbridge-regs.h	2011-11-22 22:05:57.797621630 +0100
+--- linux-media/linux/drivers/media/dvb/ddbridge/ddbridge-regs.h	2011-11-22 22:54:30.037665330 +0100
++++ linux-media-patched/linux/drivers/media/dvb/ddbridge/ddbridge-regs.h	2011-11-22 22:54:30.497665339 +0100
 @@ -21,11 +21,12 @@
   * Or, point your browser to http://www.gnu.org/copyleft/gpl.html
   */
@@ -2861,8 +2855,8 @@ diff -Nur linux-media/linux/drivers/media/dvb/ddbridge/ddbridge-regs.h linux-med
 +#define CI_BLOCKIO_RECEIVE_BUFFER(i)    (CI_BUFFER_BASE + (i) * CI_BUFFER_SIZE)
 +#define CI_BLOCKIO_SEND_BUFFER(i)       (CI_BUFFER_BASE + (i) * CI_BUFFER_SIZE + CI_BLOCKIO_BUFFER_SIZE)
 diff -Nur linux-media/linux/drivers/media/dvb/ddbridge/Kconfig linux-media-patched/linux/drivers/media/dvb/ddbridge/Kconfig
---- linux-media/linux/drivers/media/dvb/ddbridge/Kconfig	2011-11-22 22:05:56.601621612 +0100
-+++ linux-media-patched/linux/drivers/media/dvb/ddbridge/Kconfig	2011-11-22 22:05:57.797621630 +0100
+--- linux-media/linux/drivers/media/dvb/ddbridge/Kconfig	2011-11-22 22:54:30.037665330 +0100
++++ linux-media-patched/linux/drivers/media/dvb/ddbridge/Kconfig	2011-11-22 22:54:30.497665339 +0100
 @@ -6,6 +6,8 @@
  	select DVB_STV090x if !DVB_FE_CUSTOMISE
  	select DVB_DRXK if !DVB_FE_CUSTOMISE
@@ -2880,17 +2874,75 @@ diff -Nur linux-media/linux/drivers/media/dvb/ddbridge/Kconfig linux-media-patch
  
  	  Say Y if you own such a card and want to use it.
 diff -Nur linux-media/linux/drivers/media/dvb/ddbridge/Makefile linux-media-patched/linux/drivers/media/dvb/ddbridge/Makefile
---- linux-media/linux/drivers/media/dvb/ddbridge/Makefile	2011-11-22 22:05:56.601621612 +0100
-+++ linux-media-patched/linux/drivers/media/dvb/ddbridge/Makefile	2011-11-22 22:05:57.797621630 +0100
+--- linux-media/linux/drivers/media/dvb/ddbridge/Makefile	2011-11-22 22:54:30.037665330 +0100
++++ linux-media-patched/linux/drivers/media/dvb/ddbridge/Makefile	2011-11-22 22:54:30.497665339 +0100
 @@ -11,4 +11,4 @@
  ccflags-y += -Idrivers/media/common/tuners/
  
  # For the staging CI driver cxd2099
 -ccflags-y += -Idrivers/staging/media/cxd2099/
 +ccflags-y += -Idrivers/staging/cxd2099/
+diff -Nur linux-media/linux/drivers/media/dvb/frontends/Kconfig linux-media-patched/linux/drivers/media/dvb/frontends/Kconfig
+--- linux-media/linux/drivers/media/dvb/frontends/Kconfig	2011-11-22 22:54:30.061665333 +0100
++++ linux-media-patched/linux/drivers/media/dvb/frontends/Kconfig	2011-11-22 22:54:30.529665340 +0100
+@@ -26,6 +26,14 @@
+ 	  A DVB-S/S2/DSS Multistandard demodulator. Say Y when you want
+ 	  to support this demodulator based frontends
+ 
++config DVB_CXD2099
++	tristate "CXD2099AR Common Interface driver"
++	depends on DVB_CORE && PCI && I2C
++	---help---
++	  Support for the CI module found on cards based on
++	  - Micronas ngene PCIe bridge: cineS2 etc.
++	  - Digital Devices PCIe bridge: Octopus series
++
+ config DVB_STB6100
+ 	tristate "STB6100 based tuners"
+ 	depends on DVB_CORE && I2C
+@@ -70,6 +78,24 @@
+ 
+ 	  Say Y when you want to support this tuner.
+ 
++config DVB_STV0367DD
++	tristate "STV 0367 (DD)"
++	depends on DVB_CORE && I2C
++	default m if DVB_FE_CUSTOMISE
++	help
++	  STV 0367 DVB-C/T demodulator (Digital Devices driver).
++
++	  Say Y when you want to support this frontend.
++
++config DVB_TDA18212DD
++	tristate "NXP TDA18212 silicon tuner (DD)"
++	depends on DVB_CORE && I2C
++	default m if DVB_FE_CUSTOMISE
++	help
++	  NXP TDA18212 silicon tuner (Digital Devices driver).
++
++	  Say Y when you want to support this tuner.
++
+ comment "DVB-S (satellite) frontends"
+ 	depends on DVB_CORE
+ 
+diff -Nur linux-media/linux/drivers/media/dvb/frontends/Makefile linux-media-patched/linux/drivers/media/dvb/frontends/Makefile
+--- linux-media/linux/drivers/media/dvb/frontends/Makefile	2011-11-22 22:54:30.061665333 +0100
++++ linux-media-patched/linux/drivers/media/dvb/frontends/Makefile	2011-11-22 22:54:30.529665340 +0100
+@@ -90,8 +90,11 @@
+ obj-$(CONFIG_DVB_IX2505V) += ix2505v.o
+ obj-$(CONFIG_DVB_STV0367) += stv0367.o
+ obj-$(CONFIG_DVB_CXD2820R) += cxd2820r.o
++obj-$(CONFIG_DVB_CXD2099) += cxd2099.o
+ obj-$(CONFIG_DVB_DRXK) += drxk.o
+ obj-$(CONFIG_DVB_TDA18271C2DD) += tda18271c2dd.o
++obj-$(CONFIG_DVB_STV0367DD) += stv0367dd.o
++obj-$(CONFIG_DVB_TDA18212DD) += tda18212dd.o
+ obj-$(CONFIG_DVB_IT913X_FE) += it913x-fe.o
+ obj-$(CONFIG_DVB_A8293) += a8293.o
+ obj-$(CONFIG_DVB_TDA10071) += tda10071.o
 diff -Nur linux-media/linux/drivers/media/dvb/frontends/stv0367dd.c linux-media-patched/linux/drivers/media/dvb/frontends/stv0367dd.c
 --- linux-media/linux/drivers/media/dvb/frontends/stv0367dd.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-media-patched/linux/drivers/media/dvb/frontends/stv0367dd.c	2011-11-22 22:05:57.809621633 +0100
++++ linux-media-patched/linux/drivers/media/dvb/frontends/stv0367dd.c	2011-11-22 22:54:30.513665339 +0100
 @@ -0,0 +1,2129 @@
 +/*
 + * stv0367dd: STV0367 DVB-C/T demodulator driver
@@ -5023,7 +5075,7 @@ diff -Nur linux-media/linux/drivers/media/dvb/frontends/stv0367dd.c linux-media-
 +
 diff -Nur linux-media/linux/drivers/media/dvb/frontends/stv0367dd.h linux-media-patched/linux/drivers/media/dvb/frontends/stv0367dd.h
 --- linux-media/linux/drivers/media/dvb/frontends/stv0367dd.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-media-patched/linux/drivers/media/dvb/frontends/stv0367dd.h	2011-11-22 22:05:57.809621633 +0100
++++ linux-media-patched/linux/drivers/media/dvb/frontends/stv0367dd.h	2011-11-22 22:54:30.513665339 +0100
 @@ -0,0 +1,17 @@
 +#ifndef _STV0367DD_H_
 +#define _STV0367DD_H_
@@ -5044,7 +5096,7 @@ diff -Nur linux-media/linux/drivers/media/dvb/frontends/stv0367dd.h linux-media-
 +#endif
 diff -Nur linux-media/linux/drivers/media/dvb/frontends/stv0367dd_regs.h linux-media-patched/linux/drivers/media/dvb/frontends/stv0367dd_regs.h
 --- linux-media/linux/drivers/media/dvb/frontends/stv0367dd_regs.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-media-patched/linux/drivers/media/dvb/frontends/stv0367dd_regs.h	2011-11-22 22:05:57.809621633 +0100
++++ linux-media-patched/linux/drivers/media/dvb/frontends/stv0367dd_regs.h	2011-11-22 22:54:30.513665339 +0100
 @@ -0,0 +1,3431 @@
 +// @DVB-C/DVB-T STMicroelectronics STV0367 register defintions
 +// Author Manfred Völkel, Februar 2011
@@ -8479,7 +8531,7 @@ diff -Nur linux-media/linux/drivers/media/dvb/frontends/stv0367dd_regs.h linux-m
 +
 diff -Nur linux-media/linux/drivers/media/dvb/frontends/tda18212dd.c linux-media-patched/linux/drivers/media/dvb/frontends/tda18212dd.c
 --- linux-media/linux/drivers/media/dvb/frontends/tda18212dd.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-media-patched/linux/drivers/media/dvb/frontends/tda18212dd.c	2011-11-22 22:05:57.805621631 +0100
++++ linux-media-patched/linux/drivers/media/dvb/frontends/tda18212dd.c	2011-11-22 22:54:30.509665336 +0100
 @@ -0,0 +1,868 @@
 +/*
 + * tda18212: Driver for the TDA18212 tuner
@@ -9351,7 +9403,7 @@ diff -Nur linux-media/linux/drivers/media/dvb/frontends/tda18212dd.c linux-media
 + */
 diff -Nur linux-media/linux/drivers/media/dvb/frontends/tda18212dd.h linux-media-patched/linux/drivers/media/dvb/frontends/tda18212dd.h
 --- linux-media/linux/drivers/media/dvb/frontends/tda18212dd.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-media-patched/linux/drivers/media/dvb/frontends/tda18212dd.h	2011-11-22 22:05:57.805621631 +0100
++++ linux-media-patched/linux/drivers/media/dvb/frontends/tda18212dd.h	2011-11-22 22:54:30.509665336 +0100
 @@ -0,0 +1,5 @@
 +#ifndef _TDA18212DD_H_
 +#define _TDA18212DD_H_
@@ -9359,8 +9411,8 @@ diff -Nur linux-media/linux/drivers/media/dvb/frontends/tda18212dd.h linux-media
 +				       struct i2c_adapter *i2c, u8 adr);
 +#endif
 diff -Nur linux-media/linux/drivers/media/dvb/ngene/Makefile linux-media-patched/linux/drivers/media/dvb/ngene/Makefile
---- linux-media/linux/drivers/media/dvb/ngene/Makefile	2011-11-22 22:05:56.633621612 +0100
-+++ linux-media-patched/linux/drivers/media/dvb/ngene/Makefile	2011-11-22 22:05:57.801621630 +0100
+--- linux-media/linux/drivers/media/dvb/ngene/Makefile	2011-11-22 22:54:30.061665333 +0100
++++ linux-media-patched/linux/drivers/media/dvb/ngene/Makefile	2011-11-22 22:54:30.497665339 +0100
 @@ -2,7 +2,8 @@
  # Makefile for the nGene device driver
  #
@@ -9379,7 +9431,7 @@ diff -Nur linux-media/linux/drivers/media/dvb/ngene/Makefile linux-media-patched
 +ccflags-y += -Idrivers/staging/cxd2099/
 diff -Nur linux-media/linux/drivers/media/dvb/ngene/ngene-av.c linux-media-patched/linux/drivers/media/dvb/ngene/ngene-av.c
 --- linux-media/linux/drivers/media/dvb/ngene/ngene-av.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-media-patched/linux/drivers/media/dvb/ngene/ngene-av.c	2011-11-22 22:05:57.801621630 +0100
++++ linux-media-patched/linux/drivers/media/dvb/ngene/ngene-av.c	2011-11-22 22:54:30.497665339 +0100
 @@ -0,0 +1,349 @@
 +/*
 + * ngene-av.c: nGene PCIe bridge driver - DVB video/audio support
@@ -9731,8 +9783,8 @@ diff -Nur linux-media/linux/drivers/media/dvb/ngene/ngene-av.c linux-media-patch
 +};
 +#endif
 diff -Nur linux-media/linux/drivers/media/dvb/ngene/ngene-cards.c linux-media-patched/linux/drivers/media/dvb/ngene/ngene-cards.c
---- linux-media/linux/drivers/media/dvb/ngene/ngene-cards.c	2011-11-22 22:05:56.633621612 +0100
-+++ linux-media-patched/linux/drivers/media/dvb/ngene/ngene-cards.c	2011-11-22 22:05:57.801621630 +0100
+--- linux-media/linux/drivers/media/dvb/ngene/ngene-cards.c	2011-11-22 22:54:30.061665333 +0100
++++ linux-media-patched/linux/drivers/media/dvb/ngene/ngene-cards.c	2011-11-22 22:54:30.497665339 +0100
 @@ -31,6 +31,7 @@
  #include <linux/init.h>
  #include <linux/pci.h>
@@ -10342,8 +10394,8 @@ diff -Nur linux-media/linux/drivers/media/dvb/ngene/ngene-cards.c linux-media-pa
  };
  MODULE_DEVICE_TABLE(pci, ngene_id_tbl);
 diff -Nur linux-media/linux/drivers/media/dvb/ngene/ngene-core.c linux-media-patched/linux/drivers/media/dvb/ngene/ngene-core.c
---- linux-media/linux/drivers/media/dvb/ngene/ngene-core.c	2011-11-22 22:05:56.633621612 +0100
-+++ linux-media-patched/linux/drivers/media/dvb/ngene/ngene-core.c	2011-11-22 22:05:57.801621630 +0100
+--- linux-media/linux/drivers/media/dvb/ngene/ngene-core.c	2011-11-22 22:54:30.061665333 +0100
++++ linux-media-patched/linux/drivers/media/dvb/ngene/ngene-core.c	2011-11-22 22:54:30.497665339 +0100
 @@ -38,6 +38,7 @@
  #include <linux/byteorder/generic.h>
  #include <linux/firmware.h>
@@ -10807,8 +10859,8 @@ diff -Nur linux-media/linux/drivers/media/dvb/ngene/ngene-core.c linux-media-pat
  	/* Register DVB adapters and devices for both channels */
  	if (init_channels(dev) < 0)
 diff -Nur linux-media/linux/drivers/media/dvb/ngene/ngene-dvb.c linux-media-patched/linux/drivers/media/dvb/ngene/ngene-dvb.c
---- linux-media/linux/drivers/media/dvb/ngene/ngene-dvb.c	2011-11-22 22:05:56.633621612 +0100
-+++ linux-media-patched/linux/drivers/media/dvb/ngene/ngene-dvb.c	2011-11-22 22:05:57.801621630 +0100
+--- linux-media/linux/drivers/media/dvb/ngene/ngene-dvb.c	2011-11-22 22:54:30.061665333 +0100
++++ linux-media-patched/linux/drivers/media/dvb/ngene/ngene-dvb.c	2011-11-22 22:54:30.497665339 +0100
 @@ -39,13 +39,323 @@
  #include <linux/byteorder/generic.h>
  #include <linux/firmware.h>
@@ -11225,7 +11277,7 @@ diff -Nur linux-media/linux/drivers/media/dvb/ngene/ngene-dvb.c linux-media-patc
  		return chan->users;
 diff -Nur linux-media/linux/drivers/media/dvb/ngene/ngene-eeprom.c linux-media-patched/linux/drivers/media/dvb/ngene/ngene-eeprom.c
 --- linux-media/linux/drivers/media/dvb/ngene/ngene-eeprom.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-media-patched/linux/drivers/media/dvb/ngene/ngene-eeprom.c	2011-11-22 22:05:57.801621630 +0100
++++ linux-media-patched/linux/drivers/media/dvb/ngene/ngene-eeprom.c	2011-11-22 22:54:30.501665336 +0100
 @@ -0,0 +1,284 @@
 +/*
 + * ngene-eeprom.c: nGene PCIe bridge driver - eeprom support
@@ -11512,8 +11564,8 @@ diff -Nur linux-media/linux/drivers/media/dvb/ngene/ngene-eeprom.c linux-media-p
 +
 +#endif
 diff -Nur linux-media/linux/drivers/media/dvb/ngene/ngene.h linux-media-patched/linux/drivers/media/dvb/ngene/ngene.h
---- linux-media/linux/drivers/media/dvb/ngene/ngene.h	2011-11-22 22:05:56.633621612 +0100
-+++ linux-media-patched/linux/drivers/media/dvb/ngene/ngene.h	2011-11-22 22:05:57.801621630 +0100
+--- linux-media/linux/drivers/media/dvb/ngene/ngene.h	2011-11-22 22:54:30.061665333 +0100
++++ linux-media-patched/linux/drivers/media/dvb/ngene/ngene.h	2011-11-22 22:54:30.501665336 +0100
 @@ -653,6 +653,11 @@
  	struct dmx_frontend   mem_frontend;
  	int                   users;
@@ -11590,8 +11642,8 @@ diff -Nur linux-media/linux/drivers/media/dvb/ngene/ngene.h linux-media-patched/
  
  /*  LocalWords:  Endif
 diff -Nur linux-media/linux/drivers/media/dvb/ngene/ngene-i2c.c linux-media-patched/linux/drivers/media/dvb/ngene/ngene-i2c.c
---- linux-media/linux/drivers/media/dvb/ngene/ngene-i2c.c	2011-11-22 22:05:56.633621612 +0100
-+++ linux-media-patched/linux/drivers/media/dvb/ngene/ngene-i2c.c	2011-11-22 22:05:57.801621630 +0100
+--- linux-media/linux/drivers/media/dvb/ngene/ngene-i2c.c	2011-11-22 22:54:30.061665333 +0100
++++ linux-media-patched/linux/drivers/media/dvb/ngene/ngene-i2c.c	2011-11-22 22:54:30.501665336 +0100
 @@ -41,6 +41,7 @@
  #include <linux/byteorder/generic.h>
  #include <linux/firmware.h>
@@ -11732,7 +11784,7 @@ diff -Nur linux-media/linux/drivers/media/dvb/ngene/ngene-i2c.c linux-media-patc
 +
 +#endif
 diff -Nur linux-media/linux/drivers/staging/cxd2099/cxd2099.c linux-media-patched/linux/drivers/staging/cxd2099/cxd2099.c
---- linux-media/linux/drivers/staging/cxd2099/cxd2099.c	2011-11-22 22:05:56.749621619 +0100
+--- linux-media/linux/drivers/staging/cxd2099/cxd2099.c	2011-11-22 22:54:30.189665336 +0100
 +++ linux-media-patched/linux/drivers/staging/cxd2099/cxd2099.c	1970-01-01 01:00:00.000000000 +0100
 @@ -1,716 +0,0 @@
 -/*
@@ -12452,7 +12504,7 @@ diff -Nur linux-media/linux/drivers/staging/cxd2099/cxd2099.c linux-media-patche
 -MODULE_AUTHOR("Ralph Metzler");
 -MODULE_LICENSE("GPL");
 diff -Nur linux-media/linux/drivers/staging/cxd2099/cxd2099.h linux-media-patched/linux/drivers/staging/cxd2099/cxd2099.h
---- linux-media/linux/drivers/staging/cxd2099/cxd2099.h	2011-11-22 22:05:56.749621619 +0100
+--- linux-media/linux/drivers/staging/cxd2099/cxd2099.h	2011-11-22 22:54:30.189665336 +0100
 +++ linux-media-patched/linux/drivers/staging/cxd2099/cxd2099.h	1970-01-01 01:00:00.000000000 +0100
 @@ -1,51 +0,0 @@
 -/*
@@ -12507,7 +12559,7 @@ diff -Nur linux-media/linux/drivers/staging/cxd2099/cxd2099.h linux-media-patche
 -
 -#endif
 diff -Nur linux-media/linux/drivers/staging/cxd2099/Kconfig linux-media-patched/linux/drivers/staging/cxd2099/Kconfig
---- linux-media/linux/drivers/staging/cxd2099/Kconfig	2011-11-22 22:05:56.749621619 +0100
+--- linux-media/linux/drivers/staging/cxd2099/Kconfig	2011-11-22 22:54:30.185665335 +0100
 +++ linux-media-patched/linux/drivers/staging/cxd2099/Kconfig	1970-01-01 01:00:00.000000000 +0100
 @@ -1,12 +0,0 @@
 -config DVB_CXD2099
@@ -12523,7 +12575,7 @@ diff -Nur linux-media/linux/drivers/staging/cxd2099/Kconfig linux-media-patched/
 -	    - Decrypted data can be read from 'sec0'.
 -	    - Setup the CAM using device 'ca0'.
 diff -Nur linux-media/linux/drivers/staging/cxd2099/Makefile linux-media-patched/linux/drivers/staging/cxd2099/Makefile
---- linux-media/linux/drivers/staging/cxd2099/Makefile	2011-11-22 22:05:56.749621619 +0100
+--- linux-media/linux/drivers/staging/cxd2099/Makefile	2011-11-22 22:54:30.185665335 +0100
 +++ linux-media-patched/linux/drivers/staging/cxd2099/Makefile	1970-01-01 01:00:00.000000000 +0100
 @@ -1,5 +0,0 @@
 -obj-$(CONFIG_DVB_CXD2099) += cxd2099.o
@@ -12532,8 +12584,8 @@ diff -Nur linux-media/linux/drivers/staging/cxd2099/Makefile linux-media-patched
 -EXTRA_CFLAGS += -Idrivers/media/dvb/frontends/
 -EXTRA_CFLAGS += -Idrivers/media/common/tuners/
 diff -Nur linux-media/linux/drivers/staging/media/cxd2099/cxd2099.c linux-media-patched/linux/drivers/staging/media/cxd2099/cxd2099.c
---- linux-media/linux/drivers/staging/media/cxd2099/cxd2099.c	2011-11-22 22:05:56.757621618 +0100
-+++ linux-media-patched/linux/drivers/staging/media/cxd2099/cxd2099.c	2011-11-22 22:05:57.801621630 +0100
+--- linux-media/linux/drivers/staging/media/cxd2099/cxd2099.c	2011-11-22 22:54:30.197665335 +0100
++++ linux-media-patched/linux/drivers/staging/media/cxd2099/cxd2099.c	2011-11-22 22:54:30.505665335 +0100
 @@ -117,9 +117,10 @@
  
  static int read_block(struct cxd *ci, u8 adr, u8 *data, u8 n)
@@ -12548,8 +12600,8 @@ diff -Nur linux-media/linux/drivers/staging/media/cxd2099/cxd2099.c linux-media-
  		ci->lastaddress = adr;
  		status = i2c_read(ci->i2c, ci->cfg.adr, 1, data, n);
 diff -Nur linux-media/linux/drivers/staging/media/cxd2099/Makefile linux-media-patched/linux/drivers/staging/media/cxd2099/Makefile
---- linux-media/linux/drivers/staging/media/cxd2099/Makefile	2011-11-22 22:05:56.757621618 +0100
-+++ linux-media-patched/linux/drivers/staging/media/cxd2099/Makefile	2011-11-22 22:05:57.801621630 +0100
+--- linux-media/linux/drivers/staging/media/cxd2099/Makefile	2011-11-22 22:54:30.197665335 +0100
++++ linux-media-patched/linux/drivers/staging/media/cxd2099/Makefile	2011-11-22 22:54:30.505665335 +0100
 @@ -1,5 +1,5 @@
  obj-$(CONFIG_DVB_CXD2099) += cxd2099.o
  

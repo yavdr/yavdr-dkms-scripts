@@ -70,7 +70,7 @@ cd ..
 echo "s2-liplianin: Update ended. Now: $VERSION"
 }
 
-#KERNEL=3.0.0-12-generic
+#KERNEL=3.0.0-13-generic
 #RELEASE=oneiric
 KERNEL=2.6.38-12-generic
 RELEASE=natty
@@ -192,7 +192,7 @@ cd ..
 srctree=`mktemp -d --tmpdir=$PWD`
 dkmstree=`mktemp -d --tmpdir=$PWD`
 cp /var/lib/dkms/dkms_dbversion $dkmstree
-trap "rm -rf $srctree $dkmstree" 0 1 2 3 4 5 6 7 8 10 11 12 13 14 15
+#trap "rm -rf $srctree $dkmstree" 0 1 2 3 4 5 6 7 8 10 11 12 13 14 15
 
 # copy to srctree (without .hg/)
 D="$srctree/${REPO}-$VERSION"
