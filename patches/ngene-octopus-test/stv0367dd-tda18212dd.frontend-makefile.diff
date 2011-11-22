@@ -1,0 +1,105 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-US">
+<head>
+<link rel="icon" href="/hg/~endriss/media_build_experimental/static/hgicon.png" type="image/png" />
+<meta name="robots" content="index, nofollow" />
+<link rel="stylesheet" href="/hg/~endriss/media_build_experimental/static/style-paper.css" type="text/css" />
+
+<title>~endriss/media_build_experimental: b9dc0774297f experimental/stv0367dd-tda18212dd.frontend-makefile.diff</title>
+</head>
+<body>
+
+<div class="container">
+<div class="menu">
+<div class="logo">
+<a href="http://mercurial.selenic.com/">
+<img src="/hg/~endriss/media_build_experimental/static/hglogo.png" alt="mercurial" /></a>
+</div>
+<ul>
+<li><a href="/hg/~endriss/media_build_experimental/shortlog/b9dc0774297f">log</a></li>
+<li><a href="/hg/~endriss/media_build_experimental/graph/b9dc0774297f">graph</a></li>
+<li><a href="/hg/~endriss/media_build_experimental/tags">tags</a></li>
+<li><a href="/hg/~endriss/media_build_experimental/branches">branches</a></li>
+</ul>
+<ul>
+<li><a href="/hg/~endriss/media_build_experimental/rev/b9dc0774297f">changeset</a></li>
+<li><a href="/hg/~endriss/media_build_experimental/file/b9dc0774297f/experimental/">browse</a></li>
+</ul>
+<ul>
+<li class="active">file</li>
+<li><a href="/hg/~endriss/media_build_experimental/file/tip/experimental/stv0367dd-tda18212dd.frontend-makefile.diff">latest</a></li>
+<li><a href="/hg/~endriss/media_build_experimental/diff/b9dc0774297f/experimental/stv0367dd-tda18212dd.frontend-makefile.diff">diff</a></li>
+<li><a href="/hg/~endriss/media_build_experimental/annotate/b9dc0774297f/experimental/stv0367dd-tda18212dd.frontend-makefile.diff">annotate</a></li>
+<li><a href="/hg/~endriss/media_build_experimental/log/b9dc0774297f/experimental/stv0367dd-tda18212dd.frontend-makefile.diff">file log</a></li>
+<li><a href="/hg/~endriss/media_build_experimental/raw-file/b9dc0774297f/experimental/stv0367dd-tda18212dd.frontend-makefile.diff">raw</a></li>
+</ul>
+</div>
+
+<div class="main">
+<h2><a href="/hg/~endriss/media_build_experimental/">~endriss/media_build_experimental</a></h2>
+<h3>view experimental/stv0367dd-tda18212dd.frontend-makefile.diff @ 23:b9dc0774297f</h3>
+
+<form class="search" action="/hg/~endriss/media_build_experimental/log">
+
+<p><input name="rev" id="search1" type="text" size="30" /></p>
+<div id="hint">find changesets by author, revision,
+files, or words in the commit message</div>
+</form>
+
+<div class="description">Disable USB_GSPCA as it breaks the build</div>
+
+<table id="changesetEntry">
+<tr>
+ <th class="author">author</th>
+ <td class="author">&#79;&#108;&#105;&#118;&#101;&#114;&#32;&#69;&#110;&#100;&#114;&#105;&#115;&#115;&#32;&#60;&#111;&#46;&#101;&#110;&#100;&#114;&#105;&#115;&#115;&#64;&#103;&#109;&#120;&#46;&#100;&#101;&#62;</td>
+</tr>
+<tr>
+ <th class="date">date</th>
+ <td class="date">Fri Nov 11 22:52:35 2011 +0100 (10 days ago)</td>
+</tr>
+<tr>
+ <th class="author">parents</th>
+ <td class="author"><a href="/hg/~endriss/media_build_experimental/file/78c66da5d501/experimental/stv0367dd-tda18212dd.frontend-makefile.diff">78c66da5d501</a> </td>
+</tr>
+<tr>
+ <th class="author">children</th>
+ <td class="author"></td>
+</tr>
+
+</table>
+
+<div class="overflow">
+<div class="sourcefirst"> line source</div>
+
+<div class="parity0 source"><a href="#l1" id="l1">     1</a> --- linux/drivers/media/dvb/frontends/Makefile	2011-09-24 05:45:14.000000000 +0200
+</div>
+<div class="parity1 source"><a href="#l2" id="l2">     2</a> +++ xxx/Makefile	2011-10-23 20:42:16.000000000 +0200
+</div>
+<div class="parity0 source"><a href="#l3" id="l3">     3</a> @@ -92,6 +92,8 @@ obj-$(CONFIG_DVB_STV0367) += stv0367.o
+</div>
+<div class="parity1 source"><a href="#l4" id="l4">     4</a>  obj-$(CONFIG_DVB_CXD2820R) += cxd2820r.o
+</div>
+<div class="parity0 source"><a href="#l5" id="l5">     5</a>  obj-$(CONFIG_DVB_DRXK) += drxk.o
+</div>
+<div class="parity1 source"><a href="#l6" id="l6">     6</a>  obj-$(CONFIG_DVB_TDA18271C2DD) += tda18271c2dd.o
+</div>
+<div class="parity0 source"><a href="#l7" id="l7">     7</a> +obj-$(CONFIG_DVB_STV0367DD) += stv0367dd.o
+</div>
+<div class="parity1 source"><a href="#l8" id="l8">     8</a> +obj-$(CONFIG_DVB_TDA18212DD) += tda18212dd.o
+</div>
+<div class="parity0 source"><a href="#l9" id="l9">     9</a>  obj-$(CONFIG_DVB_IT913X_FE) += it913x-fe.o
+</div>
+<div class="parity1 source"><a href="#l10" id="l10">    10</a>  obj-$(CONFIG_DVB_A8293) += a8293.o
+</div>
+<div class="parity0 source"><a href="#l11" id="l11">    11</a>  obj-$(CONFIG_DVB_TDA10071) += tda10071.o
+</div>
+<div class="sourcelast"></div>
+</div>
+</div>
+</div>
+
+
+
+</body>
+</html>
+
