@@ -40,6 +40,7 @@ cp repositories/ngene-octopus-test/linux/drivers/media/dvb/frontends/stv0367dd* 
 # patches
 patch -dtmp/linux-media-patched/ -p0 < patches/ngene-octopus-test/stv0367dd-tda18212dd.frontend-kconfig.diff
 patch -dtmp/linux-media-patched/ -p0 < patches/ngene-octopus-test/stv0367dd-tda18212dd.frontend-makefile.diff 
+patch -dtmp/linux-media-patched/ -p0 < patches/ngene-octopus-test/cxd2099.diff
 
 cd tmp/
 diff -Nur linux-media linux-media-patched > ../patches/linux-media/0001-add-drivers-stv0367dd-tda18212dd-cxd2099.patch

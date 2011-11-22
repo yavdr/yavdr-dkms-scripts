@@ -1,0 +1,29 @@
+diff -Nur linux-media/linux/drivers/media/dvb/frontends/Kconfig linux-media-patched/linux/drivers/media/dvb/frontends/Kconfig
+--- linux-media/linux/drivers/media/dvb/frontends/Kconfig	2011-11-22 22:25:44.341639438 +0100
++++ linux/drivers/media/dvb/frontends/Kconfig	2011-11-22 22:50:07.997661397 +0100
+@@ -26,6 +26,14 @@
+ 	  A DVB-S/S2/DSS Multistandard demodulator. Say Y when you want
+ 	  to support this demodulator based frontends
+ 
++config DVB_CXD2099
++	tristate "CXD2099AR Common Interface driver"
++	depends on DVB_CORE && PCI && I2C
++	---help---
++	  Support for the CI module found on cards based on
++	  - Micronas ngene PCIe bridge: cineS2 etc.
++	  - Digital Devices PCIe bridge: Octopus series
++
+ config DVB_STB6100
+ 	tristate "STB6100 based tuners"
+ 	depends on DVB_CORE && I2C
+diff -Nur linux-media/linux/drivers/media/dvb/frontends/Makefile linux-media-patched/linux/drivers/media/dvb/frontends/Makefile
+--- linux-media/linux/drivers/media/dvb/frontends/Makefile	2011-11-22 22:25:44.345639439 +0100
++++ linux/drivers/media/dvb/frontends/Makefile	2011-11-22 22:51:00.533662187 +0100
+@@ -90,6 +90,7 @@
+ obj-$(CONFIG_DVB_IX2505V) += ix2505v.o
+ obj-$(CONFIG_DVB_STV0367) += stv0367.o
+ obj-$(CONFIG_DVB_CXD2820R) += cxd2820r.o
++obj-$(CONFIG_DVB_CXD2099) += cxd2099.o
+ obj-$(CONFIG_DVB_DRXK) += drxk.o
+ obj-$(CONFIG_DVB_TDA18271C2DD) += tda18271c2dd.o
+ obj-$(CONFIG_DVB_STV0367DD) += stv0367dd.o
