@@ -4631,7 +4631,7 @@ diff -Nur linux-media/linux/drivers/media/dvb/frontends/stv0367dd.c linux-media-
 +	default:
 +		stat = -EINVAL;
 +	}
-+	printk("%s IF=%d OF=%d done\n", __FUNCTION__, IF, OF);
++	dprintk(KERN_DEBUG DEVICE_NAME ": %s IF=%d OF=%d done\n", __FUNCTION__, IF, OF);
 +	return stat;
 +}
 +
@@ -9015,7 +9015,7 @@ diff -Nur linux-media/linux/drivers/media/dvb/frontends/tda18212dd.c linux-media
 +
 +		if( *pPowerLevel > 110 ) *pPowerLevel = 110;
 +	} while(0);
-+	printk("PL %d\n", *pPowerLevel);
++	dprintk(KERN_DEBUG DEVICE_NAME ": PL %d\n", *pPowerLevel);
 +	return status;
 +}
 +
