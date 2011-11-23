@@ -463,7 +463,7 @@ diff -Nur linux-media/linux/drivers/media/dvb/ddbridge/ddbridge-core.c linux-med
 +	ddbwritel(dev, 9, TS_INPUT_CONTROL(input->nr));
 +	input->dma->running = 1;
 +	spin_unlock_irq(&input->dma->lock);
-+	printk(KERN_INFO "input_start %d\n", input->nr);
++//	printk(KERN_INFO "input_start %d\n", input->nr);
  }
  
  static void ddb_input_stop(struct ddb_input *input)
