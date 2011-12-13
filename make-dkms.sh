@@ -70,10 +70,10 @@ cd ..
 echo "s2-liplianin: Update ended. Now: $VERSION"
 }
 
-KERNEL=3.0.0-14-generic
-RELEASE=oneiric
-#KERNEL=2.6.38-12-generic
-#RELEASE=natty
+#KERNEL=3.0.0-14-generic
+#RELEASE=oneiric
+KERNEL=2.6.38-13-generic
+RELEASE=natty
 if [ -z "$KERNEL" ]; then
     if [ ! -z "$2" ]; then
     	KERNEL="$2"
