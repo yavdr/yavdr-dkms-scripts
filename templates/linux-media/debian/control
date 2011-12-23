@@ -8,6 +8,6 @@ Standards-Version: 3.8.1
 Package: DEBIAN_PACKAGE-dkms
 Architecture: all
 Depends: dkms (>= 1.95), ${misc:Depends}, libproc-processtable-perl
-Conflicts: s2-liplianin-dkms, v4l-dvb-dkms, linux-tbs-drivers
-Replaces: s2-liplianin-dkms, v4l-dvb-dkms, linux-tbs-drivers
+Conflicts: s2-liplianin-dkms, v4l-dvb-dkms, linux-tbs-drivers-dkms, linux-media-tbs-dkms
+Replaces: s2-liplianin-dkms, v4l-dvb-dkms, linux-tbs-drivers-dkms, linux-media-tbs-dkms
 Description: DEBIAN_PACKAGE driver in DKMS format.
