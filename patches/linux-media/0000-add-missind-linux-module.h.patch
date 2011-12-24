@@ -1,0 +1,33 @@
+diff -Nur a/linux/drivers/media/rc/keymaps/rc-terratec-cinergy-c-pci.c b/linux/drivers/media/rc/keymaps/rc-terratec-cinergy-c-pci.c
+--- a/linux/drivers/media/rc/keymaps/rc-terratec-cinergy-c-pci.c	2011-12-24 09:55:33.533204788 +0100
++++ b/linux/drivers/media/rc/keymaps/rc-terratec-cinergy-c-pci.c	2011-12-24 10:04:59.505189429 +0100
+@@ -7,6 +7,7 @@
+  */
+ 
+ #include <media/rc-map.h>
++#include <linux/module.h>
+ 
+ static struct rc_map_table terratec_cinergy_c_pci[] = {
+ 	{ 0x3e, KEY_POWER},
+diff -Nur a/linux/drivers/media/rc/keymaps/rc-terratec-cinergy-s2-hd.c b/linux/drivers/media/rc/keymaps/rc-terratec-cinergy-s2-hd.c
+--- a/linux/drivers/media/rc/keymaps/rc-terratec-cinergy-s2-hd.c	2011-12-24 09:55:33.533204788 +0100
++++ b/linux/drivers/media/rc/keymaps/rc-terratec-cinergy-s2-hd.c	2011-12-24 10:05:19.385188890 +0100
+@@ -7,6 +7,7 @@
+  */
+ 
+ #include <media/rc-map.h>
++#include <linux/module.h>
+ 
+ static struct rc_map_table terratec_cinergy_s2_hd[] = {
+ 	{ 0x03, KEY_NEXT},               /* >| */
+diff -Nur a/linux/drivers/media/rc/keymaps/rc-twinhan-dtv-cab-ci.c b/linux/drivers/media/rc/keymaps/rc-twinhan-dtv-cab-ci.c
+--- a/linux/drivers/media/rc/keymaps/rc-twinhan-dtv-cab-ci.c	2011-12-24 09:55:33.533204788 +0100
++++ b/linux/drivers/media/rc/keymaps/rc-twinhan-dtv-cab-ci.c	2011-12-24 10:06:20.681187226 +0100
+@@ -7,6 +7,7 @@
+  */
+ 
+ #include <media/rc-map.h>
++#include <linux/module.h>
+ 
+ static struct rc_map_table twinhan_dtv_cab_ci[] = {
+ 	{ 0x29, KEY_POWER},
